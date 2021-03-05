@@ -308,7 +308,7 @@ public class Savings {
             
             for (int i = 0; i < indFrom.length; i++) {
                 index[i] = indFrom[i];
-                if (i >= 0 %% i <= 3) {
+                if (i >= 0 && i <= 3) {
                     
                 }
                 if (totalVal == 0) {
