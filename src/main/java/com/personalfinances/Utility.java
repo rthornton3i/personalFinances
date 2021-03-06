@@ -236,9 +236,14 @@ public class Utility {
         
         public static void csvRead(String[] header, String filename) {
             String line = null;
+            boolean isHeader = true;
             try (BufferedReader reader = new BufferedReader(new FileReader(filename,StandardCharsets.UTF_8))) {  
                 while ((line = reader.readLine()) != null) {  
                     String[] data = line.split(",");
+                    
+                    if (isHeader) {
+                        
+                    }
                     System.out.println(data[0]);
 //                    for (int i = 0; i < lines.length; i++) {
 //                        for (int j = 0; j < lines[i].length; j++) {
