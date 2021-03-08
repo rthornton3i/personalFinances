@@ -19,7 +19,7 @@ public class Reader {
     public void readInputs() {
         String[] header = {"header1","header2"};
         
-        String filename = "Inputs.csv";
+        String filename = "Inputs.xlsx";
         
         Utility.CSV.csvRead(header,filename);
     }
