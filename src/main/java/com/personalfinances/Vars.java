@@ -488,6 +488,18 @@ public class Vars {
                                 "SAVINGS",
                                 "SAVINGS"};
         
+        String[] capGainsType = {"LONG",
+                                 "LONG",
+                                 "LONG",
+                                 "LONG",
+                                 "SHORT",
+                                 "NONE",
+                                 "SHORT",
+                                 "NONE",
+                                 "NONE",
+                                 "NONE",
+                                 "NONE"};
+        
         int[] baseSavings = {(int) (0.15*29000),             //hiDiv      
                              (int) (0.15*29000),             //lowVol   
                              (int) (0.10*29000),             //valueGrowth   

@@ -164,9 +164,6 @@ public class Savings {
                     savings[i][j] += savings[i][j-1];
                 }
                 
-//                if (j == 25 && i == 7) {
-//                    System.out.println("here");
-//                }
                 contributions[i][j] += (int) (((double) expenses[i] / totalExpenses) * netCont);
                 contributions[i][j] += (int) (allocations[i][j] * remCash);
                 savings[i][j] += contributions[i][j];
@@ -185,28 +182,18 @@ public class Savings {
 //                }
             }
             
-            // UNDERFLOW  
+            // UNDERFLOW
             for (int[][] under : vars.allocations.underflow) {
                 if (under.length == 3) {
                     if (j >= under[2][0]) {
-                        savings = underFlow(savings,j,under[0][0],under[1]);
+                        Withdraw withdraw = underFlow(savings,j,under[0][0],under[1]);
+                        savings = withdraw.savings;
                     }
                 } else {
-                    savings = underFlow(savings,j,under[0][0],under[1]);
+                    Withdraw withdraw = underFlow(savings,j,under[0][0],under[1]);
+                    savings = withdraw.savings;
                 }
-            }  
-            
-//            for (int[][] under : vars.allocations.underflow) {
-//                if (under.length == 3) {
-//                    if (j >= under[2][0]) {
-//                        Withdraw withdraw = underFlow2(savings,j,under[0][0],under[1]);
-//                        savings = withdraw.savings;
-//                    }
-//                } else {
-//                    Withdraw withdraw = underFlow2(savings,j,under[0][0],under[1]);
-//                    savings = withdraw.savings;
-//                }
-//            } 
+            } 
             
             boolean retired = true;
             for (int k = 0; k < retAge.length; k++) {
@@ -256,37 +243,9 @@ public class Savings {
                 
         return savingsOut;
     }
-        
-    private static int[][] underFlow(int[][] savingsIn, int yr, int indTo, int[] indFrom) {
-        int[][] savingsOut = savingsIn;
-        
-        if (savingsOut[indTo][yr] < 0) {
-            int transferVal = -savingsOut[indTo][yr];
-            savingsOut[indTo][yr] = 0;
-            
-            int[] accVal = new int[indFrom.length];
-            for (int i = 0; i < indFrom.length; i++) {
-                accVal[i] = savingsOut[indFrom[i]][yr];
-                if (accVal[i] < 0) {
-                    accVal[i] = 0;
-                }
-            }
-            int totalVal = Utility.ArrayMath.sumArray(accVal);
-            
-            for (int i = 0; i < indFrom.length; i++) {
-                if (totalVal == 0) {
-                    savingsOut[indFrom[i]][yr] -= transferVal / indFrom.length;
-                } else {
-                    savingsOut[indFrom[i]][yr] -= (int) (transferVal * ((double) accVal[i] / totalVal));
-                }
-            }
-        }
-                
-        return savingsOut;
-    }
     
-    private static Withdraw underFlow2(int[][] savingsIn, int yr, int indTo, int[] indFrom) {
-        Withdraw underFlow2 = new Withdraw();
+    private static Withdraw underFlow(int[][] savingsIn, int yr, int indTo, int[] indFrom) {
+        Withdraw underFlow = new Withdraw();
         
         int[] index = new int[indFrom.length];
         int[] amount = new int[indFrom.length];
@@ -308,30 +267,28 @@ public class Savings {
             
             for (int i = 0; i < indFrom.length; i++) {
                 index[i] = indFrom[i];
-                if (i >= 0 && i <= 3) {
-                    
-                }
+                capGains[i] = vars.allocations.capGainsType[i];
                 if (totalVal == 0) {
                     amount[i] = transferVal / indFrom.length;
-                    savingsOut[indFrom[i]][yr] -= amount[i];
                 } else {
-                    savingsOut[indFrom[i]][yr] -= (int) (transferVal * ((double) accVal[i] / totalVal));
+                    amount[i] = (int) (transferVal * ((double) accVal[i] / totalVal));
                 }
+                savingsOut[indFrom[i]][yr] -= amount[i];
             }
         }
         
-        underFlow2.index = index;
-        underFlow2.amount = amount;
-        underFlow2.capGains = capGains;
-        underFlow2.savings = savingsOut;
+        underFlow.index = index;
+        underFlow.amount = amount;
+        underFlow.capGains = capGains;
+        underFlow.savings = savingsOut;
                 
-        return underFlow2;
+        return underFlow;
     }
     
     public static class Withdraw {
         int[] index;
         int[] amount;
-        String[] capGains; // Short/Long
+        String[] capGains;
         
         int[][] savings;
     }

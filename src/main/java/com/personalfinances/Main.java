@@ -15,8 +15,8 @@ public class Main {
             vars = new Vars();
             TaxDict taxDict = new TaxDict();
 
-            Reader reader = new Reader(vars);
-            reader.run();
+//            Reader reader = new Reader(vars);
+//            reader.run();
 
             Setup setup = new Setup(vars);
             vars = setup.run();
