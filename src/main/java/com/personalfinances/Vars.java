@@ -25,22 +25,19 @@ public class Vars {
         int numInd = baseAges.length;
     }
     
+    public class Filing {
+        String filingType = "SEPARATE";
+        String[] filingState = {"NJ","NJ"};
+    }
+    
     public class Salary {
         int[] salBase   = {87406,95000};
         double[] salGrowth = {0.025,0.032,0.05};
         int[][] prevSal = {{75000,79750},{83000,87720}};
-        double wageInd = 0.0328;
         
         int[][] salary;
         int[][] income;
         int[] grossIncome;
-        
-        int[][] ssIns;
-    }
-    
-    public class Filing {
-        String filingType = "SEPARATE";
-        String[] filingState = {"NJ","NJ"};
     }
     
     public class Children {
@@ -326,6 +323,7 @@ public class Vars {
     public class Benefits {
         Health health = new Health();
         Retirement retirement = new Retirement();
+        SocialSecurity socialSecurity = new SocialSecurity();
         
         public class Health {
             // Cost per year per individual
@@ -378,6 +376,17 @@ public class Vars {
                 
                 int[][] contribution;
             }
+        }
+        
+        public class SocialSecurity {
+            double wageInd = 0.0325;
+            double cola = 0.0138;
+            
+            double[] bendPerc = {0.9,0.32,0.15};
+            int[] bendPts = {996,6002};
+            double[][] bendSlope = {{0.33,25},{1.99,155}};
+        
+            int[][] ssIns;
         }
     }
     

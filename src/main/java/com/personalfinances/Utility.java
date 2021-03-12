@@ -188,28 +188,52 @@ public class Utility {
             return multArrays;
         }
         
-        public static int[][] avgArrays2(int[] numel, int[][] arr) {
-            int[][] avgArrays = new int[numel[0]][numel[1]];
+        public static double[][] avgArrays2D(double[][] arr, int numel) {
+            double[][] avgArrays = new double[arr.length][arr[0].length];
             
             for (int i = 0; i < avgArrays.length; i++) {
                 for (int j = 0; j < avgArrays[0].length; j++) {
-                    avgArrays[i][j] = arr[i][j] / numel[2];
+                    avgArrays[i][j] = arr[i][j] / numel;
                 }
             }
 
             return avgArrays;
         }
         
-        public static double[][] avgArrays2D(int[] numel, double[][] arr) {
-            double[][] avgArrays = new double[numel[0]][numel[1]];
+        public static int[] maxArray(int[] arr, int numel) {
+            int[] maxEls = new int[numel];
             
-            for (int i = 0; i < avgArrays.length; i++) {
-                for (int j = 0; j < avgArrays[0].length; j++) {
-                    avgArrays[i][j] = arr[i][j] / numel[2];
+            int[] maxArray = arr;
+            int maxNum = -1;
+            int maxInd = -1;
+            for (int j = 0; j < numel; j++) {
+                for (int i = 0; i < maxArray.length; i++) {
+                    if (i == 0) {
+                        maxNum = maxArray[i];
+                        maxInd = i;
+                    } else {
+                        if (maxArray[i] > maxNum) {
+                            maxNum = maxArray[i];
+                            maxInd = i;
+                        }
+                    }
                 }
+                maxEls[j] = maxNum;
+                
+                if (maxArray.length == 1) {
+                    break;
+                }
+                
+                int[] tempArray = new int[maxArray.length - 1];
+                for (int i = 0, k = 0; i < maxArray.length; i++) {
+                    if (i != maxInd) {
+                        tempArray[k++] = maxArray[i];
+                    }
+                }
+                maxArray = tempArray;
             }
-
-            return avgArrays;
+            
+            return maxEls;
         }
     }
     

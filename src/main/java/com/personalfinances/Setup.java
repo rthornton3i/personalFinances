@@ -13,7 +13,12 @@ public class Setup {
     static int[] salBases;
     static double[] salGrowth;
     static int[][] prevSal;
+    
     static double wageInd;
+    static double cola;
+    static double[] bendPerc;
+    static int[] bendPts;
+    static double[][] bendSlope;
     
     static String filingType;
     
@@ -31,8 +36,7 @@ public class Setup {
     private static int[][] ages;
     private static int[][] childAges;
     
-    private static int[][] ssWages;
-    private static int[][] primIns;
+    private static int[][] ssIns;
     
     public Setup(Vars vars, TaxDict taxes) {
         this.vars = vars;
@@ -49,7 +53,12 @@ public class Setup {
         salBases = vars.salary.salBase;
         salGrowth = vars.salary.salGrowth;
         prevSal = vars.salary.prevSal;
-        wageInd = vars.salary.wageInd;
+        
+        wageInd = vars.benefits.socialSecurity.wageInd;
+        cola = vars.benefits.socialSecurity.cola;
+        bendPts = vars.benefits.socialSecurity.bendPts;
+        bendSlope = vars.benefits.socialSecurity.bendSlope;
+        bendPerc = vars.benefits.socialSecurity.bendPerc;
         
         filingType = vars.filing.filingType;
     }
@@ -84,11 +93,10 @@ public class Setup {
         vars.salary.grossIncome = grossIncome;
                 
         // Social Security
-        ssWages = new int[iters][years+vars.salary.prevSal[0].length];
-        primIns = new int[iters][years];
+        ssIns = new int[numInd][years];
         
         socialSecurityCalc();
-        vars.salary.ssIns = primIns;
+        vars.benefits.socialSecurity.ssIns = ssIns;
         
         return vars;
     }
@@ -136,6 +144,10 @@ public class Setup {
     static void socialSecurityCalc() {
         TaxDict.Federal.Fica.Filing socialSecurity;
         
+        int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
+        int[] primIns = new int[iters];
+        int[] aime = new int[numInd];
+        
         switch (filingType.toUpperCase()) {
             case "JOINT" ->    socialSecurity = taxes.federal.fica.ss.joint;
             case "SEPARATE" -> socialSecurity = taxes.federal.fica.ss.separate;
@@ -143,27 +155,65 @@ public class Setup {
             default ->         socialSecurity = taxes.federal.fica.ss.single; // Assume Single 
         }
         
+        int prevYrs;
+        int yrInd;
+        double growthFactor;
         for (int i = 0; i < iters; i++) {
-            int prevYrs = prevSal[i].length;
+            prevYrs = prevSal[i].length;
             for (int j = 0; j < prevYrs; j++) {
-                int yrInd = retYrs[i] - j;
+                yrInd = retYrs[i] - j;
+                growthFactor = Math.exp(wageInd * yrInd);
                 
                 ssWages[i][j] = prevSal[i][j];
-                ssWages[i][j] *= Math.exp(wageInd * yrInd);
-                if (ssWages[i][j] > socialSecurity.maxSal) {
-                    ssWages[i][j] = socialSecurity.maxSal;
+                ssWages[i][j] *= growthFactor;
+                
+                if (ssWages[i][j] > socialSecurity.maxSal * growthFactor) {
+                    ssWages[i][j] = (int) (socialSecurity.maxSal * growthFactor);
                 }
             }
             
             for (int j = 0; j < years; j++) {
-                int yrInd = retYrs[i] - (j + prevYrs);
+                yrInd = retYrs[i] - (j + prevYrs);
+                growthFactor = Math.exp(wageInd * yrInd);
                 
                 ssWages[i][j+prevYrs] = salary[i][j];
-                ssWages[i][j+prevYrs] *= Math.exp(wageInd * yrInd);
-                if (ssWages[i][j+prevYrs] > socialSecurity.maxSal) {
-                    ssWages[i][j+prevYrs] = socialSecurity.maxSal;
+                ssWages[i][j+prevYrs] *= growthFactor;
+                
+                if (ssWages[i][j+prevYrs] > socialSecurity.maxSal * growthFactor) {
+                    ssWages[i][j+prevYrs] = (int) (socialSecurity.maxSal * growthFactor);
                 }
             }
+            
+            ssWages[i] = Utility.ArrayMath.maxArray(ssWages[i], 35);      
+            aime[i] = Utility.ArrayMath.sumArray(ssWages[i]) / 35 / 12;
+            
+            int tempAime = aime[i];
+            int prevBend = 0;
+            for (int k = 0; k < 3; k++) {
+                int bendPt;
+                if (k < 2) {
+                    bendPt = (int) (bendPts[k] + (retYrs[i] * (retYrs[i] * bendSlope[k][0] + bendSlope[k][1])));
+                } else {
+                    bendPt = (int) 1e9;
+                }
+                
+                int bracketAmt;
+                if (aime[i] > bendPt) {
+                    bracketAmt = (int) (bendPerc[k] * (bendPt - prevBend));
+                } else {
+                    bracketAmt = (int) (bendPerc[k] * tempAime);
+                }
+                primIns[i] += bracketAmt;
+                tempAime -= bracketAmt;
+                
+                prevBend = bendPt;
+            }
+            
+            for (int j = retYrs[i], k = 1; j < years; j++, k++) {
+                ssIns[i][j] = (int) (primIns[i] * Math.exp(cola * k) * 12);
+            }
+            
+            // FULL RETIREMENT AGE ADJUSTMENTS
         }
     }
 }

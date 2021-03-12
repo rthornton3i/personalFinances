@@ -31,6 +31,7 @@ com\personalfinances\App$2.class
 com\personalfinances\Vars$Expenses$Food.class
 com\personalfinances\Vars$Taxes$State$Exemptions$PersExempt.class
 com\personalfinances\TaxDict$State$Args.class
+com\personalfinances\Vars$Benefits$SocialSecurity.class
 com\personalfinances\Vars$Taxes$State$Deductions$Standard.class
 com\personalfinances\Vars$Expenses$Charity.class
 com\personalfinances\Vars$Expenses$Cars.class

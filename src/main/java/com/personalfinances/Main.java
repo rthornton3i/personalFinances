@@ -40,8 +40,8 @@ public class Main {
                                                          totalSavings, Utility.Conversion.int2double2(new int[]{vars.allocations.numAccounts,vars.base.years},vars.savings.savings));
         }
         
-        vars.expenses.totalExpenses = Utility.Conversion.double2int2(new int[]{vars.expenses.numExpenses,vars.base.years}, Utility.ArrayMath.avgArrays2D(new int[]{vars.expenses.numExpenses,vars.base.years,vars.base.loops}, totalExpenses));
-        vars.savings.savings        = Utility.Conversion.double2int2(new int[]{vars.allocations.numAccounts,vars.base.years}, Utility.ArrayMath.avgArrays2D(new int[]{vars.allocations.numAccounts,vars.base.years,vars.base.loops}, totalSavings));
+        vars.expenses.totalExpenses = Utility.Conversion.double2int2(new int[]{vars.expenses.numExpenses,vars.base.years}, Utility.ArrayMath.avgArrays2D(totalExpenses,vars.base.loops));
+        vars.savings.savings        = Utility.Conversion.double2int2(new int[]{vars.allocations.numAccounts,vars.base.years}, Utility.ArrayMath.avgArrays2D(totalSavings,vars.base.loops));
         
         System.out.println("Net Worth: " + Utility.ArrayMath.sumArray2(vars.savings.savings,1)[vars.base.years-1]);
         
