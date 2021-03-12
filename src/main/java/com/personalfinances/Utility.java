@@ -48,6 +48,9 @@ public class Utility {
                         double std = (range[1] - mean) / 3;
                         rng[i] = (int) Math.round((normalRand(mean,std) * (range[1] - range[0])) + range[0]);
                     }
+                    case "TRIANGULAR" -> {
+//                        rng[i] = triRand(range[0]/100,range)
+                    }
                 }
             }
             

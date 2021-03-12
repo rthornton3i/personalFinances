@@ -26,7 +26,7 @@ public class Savings {
         
         years = vars.base.years;
         ages = vars.base.ages;
-        retAge = vars.base.retYrs;
+        retAge = vars.base.retAges;
         childAges = vars.children.childAges;
         maxChildYr = vars.children.maxChildYr;
         
@@ -186,12 +186,12 @@ public class Savings {
             for (int[][] under : vars.allocations.underflow) {
                 if (under.length == 3) {
                     if (j >= under[2][0]) {
-                        Withdraw withdraw = underFlow(savings,j,under[0][0],under[1]);
-                        savings = withdraw.savings;
+                        Withdrawal withdrawal = underFlow(savings,j,under[0][0],under[1]);
+                        savings = withdrawal.savings;
                     }
                 } else {
-                    Withdraw withdraw = underFlow(savings,j,under[0][0],under[1]);
-                    savings = withdraw.savings;
+                    Withdrawal withdrawal = underFlow(savings,j,under[0][0],under[1]);
+                    savings = withdrawal.savings;
                 }
             } 
             
@@ -213,10 +213,12 @@ public class Savings {
             for (int[] over : vars.allocations.overflow) {
                 if (over.length == 4) {
                     if (j >= over[3]) {
-                        savings = overFlow(savings,j,over[0],over[1],over[2]);
+                        Withdrawal withdrawal = overFlow(savings,j,over[0],over[1],over[2]);
+                        savings = withdrawal.savings;
                     }
                 } else {
-                    savings = overFlow(savings,j,over[0],over[1],over[2]);
+                    Withdrawal withdrawal = overFlow(savings,j,over[0],over[1],over[2]);
+                    savings = withdrawal.savings;
                 }
             }
             
@@ -227,25 +229,36 @@ public class Savings {
                 }
             }
             if (childMax) {
-                savings = overFlow(savings,j,7,8,0); // College to Long-Term (Excess)
+                Withdrawal withdrawal = overFlow(savings,j,7,8,0); // College to Long-Term (Excess)
+                savings = withdrawal.savings;
             }
         }
     }
     
-    private static int[][] overFlow(int[][] savingsIn, int yr, int indFrom, int indTo, int maxVal) {
+    private static Withdrawal overFlow(int[][] savingsIn, int yr, int indFrom, int indTo, int maxVal) {
+        Withdrawal overFlow = new Withdrawal();
+        
+        int index = indFrom;
+        int amount = 0;
+        String capGains = vars.allocations.capGainsType[indFrom];
         int[][] savingsOut = savingsIn;
         
         if (savingsOut[indFrom][yr] > maxVal) {
-            int transferVal = savingsOut[indFrom][yr] - maxVal;
+            amount = savingsOut[indFrom][yr] - maxVal;
             savingsOut[indFrom][yr] = maxVal;
-            savingsOut[indTo][yr] += transferVal;
+            savingsOut[indTo][yr] += amount;
         }
-                
-        return savingsOut;
+        
+        overFlow.index = new int[]{index};
+        overFlow.amount = new int[]{amount};
+        overFlow.capGains = new String[]{capGains};
+        overFlow.savings = savingsOut;
+        
+        return overFlow;
     }
     
-    private static Withdraw underFlow(int[][] savingsIn, int yr, int indTo, int[] indFrom) {
-        Withdraw underFlow = new Withdraw();
+    private static Withdrawal underFlow(int[][] savingsIn, int yr, int indTo, int[] indFrom) {
+        Withdrawal underFlow = new Withdrawal();
         
         int[] index = new int[indFrom.length];
         int[] amount = new int[indFrom.length];
@@ -285,7 +298,7 @@ public class Savings {
         return underFlow;
     }
     
-    public static class Withdraw {
+    public static class Withdrawal {
         int[] index;
         int[] amount;
         String[] capGains;

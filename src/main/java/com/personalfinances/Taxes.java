@@ -505,43 +505,43 @@ public class Taxes {
         Vars.Expenses.Housing.House house = vars.expenses.housing.house;
         
         saltTaxes = new int[iters][years];
-                
+        
         for (int i = 0; i < iters; i++) {
-            for (int j = 0; j < years; j++) {
-                switch (filingState[i].toUpperCase()) {
-                    case "NJ" -> {
-                        switch (filingType.toUpperCase()) {
-                            case "JOINT" ->     state = taxes.state.nj.state.joint;
-                            case "SEPARATE" ->  state = taxes.state.nj.state.separate;
-                            case "SINGLE" ->    state = taxes.state.nj.state.single;
-                            default ->          state = taxes.state.nj.state.single; // Assume Single
-                        }
-                        
-                        local = taxes.state.nj.local;
+            switch (filingState[i].toUpperCase()) {
+                case "NJ" -> {
+                    switch (filingType.toUpperCase()) {
+                        case "JOINT" ->     state = taxes.state.nj.state.joint;
+                        case "SEPARATE" ->  state = taxes.state.nj.state.separate;
+                        case "SINGLE" ->    state = taxes.state.nj.state.single;
+                        default ->          state = taxes.state.nj.state.single; // Assume Single
                     }
-                    
-                    case "MD" -> {
-                        switch (filingType.toUpperCase()) {
-                            case "JOINT" ->     state = taxes.state.md.state.joint;
-                            case "SEPARATE" ->  state = taxes.state.md.state.separate;
-                            case "SINGLE" ->    state = taxes.state.md.state.single;
-                            default ->          state = taxes.state.md.state.single; // Assume Single
-                        }
-                        
-                        local = taxes.state.md.local;
-                    }
-                    
-                    case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY" -> {
-                        state = taxes.state.none.state.none;
-                        local = taxes.state.none.local;
-                    }
-                    
-                    default -> {
-                        state = taxes.state.none.state.none;
-                        local = taxes.state.none.local;
-                    }
+
+                    local = taxes.state.nj.local;
                 }
-                
+
+                case "MD" -> {
+                    switch (filingType.toUpperCase()) {
+                        case "JOINT" ->     state = taxes.state.md.state.joint;
+                        case "SEPARATE" ->  state = taxes.state.md.state.separate;
+                        case "SINGLE" ->    state = taxes.state.md.state.single;
+                        default ->          state = taxes.state.md.state.single; // Assume Single
+                    }
+
+                    local = taxes.state.md.local;
+                }
+
+                case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY" -> {
+                    state = taxes.state.none.state.none;
+                    local = taxes.state.none.local;
+                }
+
+                default -> {
+                    state = taxes.state.none.state.none;
+                    local = taxes.state.none.local;
+                }
+            }
+            
+            for (int j = 0; j < years; j++) {
                 int maxBracket = 0;
                 int minBracket;
                 double rateBracket;
@@ -570,31 +570,31 @@ public class Taxes {
         TaxDict.Federal.Fica.Filing medicare;
         TaxDict.Federal.Fica.Filing socialSecurity;
         
+        switch (filingType.toUpperCase()) {
+            case "JOINT" -> {    
+                federal = taxes.federal.federal.joint;
+                medicare = taxes.federal.fica.med.joint;
+                socialSecurity = taxes.federal.fica.ss.joint;
+            }
+            case "SEPARATE" -> { 
+                federal = taxes.federal.federal.separate;
+                medicare = taxes.federal.fica.med.separate;
+                socialSecurity = taxes.federal.fica.ss.separate;
+            }
+            case "SINGLE" -> {   
+                federal = taxes.federal.federal.single;
+                medicare = taxes.federal.fica.med.single;
+                socialSecurity = taxes.federal.fica.ss.single;
+            }
+            default -> { // Assume Single        
+                federal = taxes.federal.federal.single; 
+                medicare = taxes.federal.fica.med.single;
+                socialSecurity = taxes.federal.fica.ss.single;
+            }
+        }
+        
         for (int i = 0; i < iters; i++) {
-            for (int j = 0; j < years; j++) {
-                switch (filingType.toUpperCase()) {
-                    case "JOINT" -> {    
-                        federal = taxes.federal.federal.joint;
-                        medicare = taxes.federal.fica.med.joint;
-                        socialSecurity = taxes.federal.fica.ss.joint;
-                    }
-                    case "SEPARATE" -> { 
-                        federal = taxes.federal.federal.separate;
-                        medicare = taxes.federal.fica.med.separate;
-                        socialSecurity = taxes.federal.fica.ss.separate;
-                    }
-                    case "SINGLE" -> {   
-                        federal = taxes.federal.federal.single;
-                        medicare = taxes.federal.fica.med.single;
-                        socialSecurity = taxes.federal.fica.ss.single;
-                    }
-                    default -> { // Assume Single        
-                        federal = taxes.federal.federal.single; 
-                        medicare = taxes.federal.fica.med.single;
-                        socialSecurity = taxes.federal.fica.ss.single;
-                    }
-                }
-                
+            for (int j = 0; j < years; j++) {                
                 // Federal Tax
                 int maxBracket = 0;
                 int minBracket;

@@ -19,11 +19,11 @@ public class TaxDict {
             federal.single.bracketMax = new int[]{9525,38700,82500,157500,200000,500000,(int) 1e9};
             federal.single.bracketPerc = new double[]{0.10,0.12,0.22,0.24,0.32,0.35,0.37};
             
-            fica.ss.joint.maxSal = 128700;
+            fica.ss.joint.maxSal = 142800;
             fica.ss.joint.rate = 0.062;
-            fica.ss.separate.maxSal = 128700;
+            fica.ss.separate.maxSal = 142800;
             fica.ss.separate.rate = 0.062;
-            fica.ss.single.maxSal = 128700;
+            fica.ss.single.maxSal = 142800;
             fica.ss.single.rate = 0.062;
             
             fica.med.joint.maxSal = 250000;

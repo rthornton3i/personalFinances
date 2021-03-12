@@ -18,7 +18,7 @@ public class Vars {
         int loops = 100;
         int years = 40; // Starting 2021
         int[] baseAges = {25,25};
-        int[] retYrs = {50,50};
+        int[] retAges = {50,50};
         
         int[][] ages;
         
@@ -27,11 +27,15 @@ public class Vars {
     
     public class Salary {
         int[] salBase   = {87406,95000};
-        double[] salGrowth = {0.015,0.028,0.05};
+        double[] salGrowth = {0.025,0.032,0.05};
+        int[][] prevSal = {{75000,79750},{83000,87720}};
+        double wageInd = 0.0328;
         
         int[][] salary;
         int[][] income;
         int[] grossIncome;
+        
+        int[][] ssIns;
     }
     
     public class Filing {
@@ -44,7 +48,6 @@ public class Vars {
         int maxChildYr = 22;
         
         int[][] childAges;
-        int[] numChild;
     }
     
     public class Expenses {

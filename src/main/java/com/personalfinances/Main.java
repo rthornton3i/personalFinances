@@ -18,7 +18,7 @@ public class Main {
 //            Reader reader = new Reader(vars);
 //            reader.run();
 
-            Setup setup = new Setup(vars);
+            Setup setup = new Setup(vars, taxDict);
             vars = setup.run();
 
             Loans loans = new Loans(vars);
