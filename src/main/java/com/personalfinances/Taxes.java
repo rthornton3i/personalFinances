@@ -92,6 +92,11 @@ public class Taxes {
         vars.benefits.retirement.roth.contribution = retCalc(vars.benefits.retirement.roth);
         vars.benefits.retirement.match.contribution = matchCalc(vars.benefits.retirement.match);
         
+//      Social Security
+//        ssTaxes = new int[iters][years];
+//        
+//        ssTaxCalc();
+
 //      Deduction/Exemptions
         mortInt = new int[iters][years];
         charDon = new int[iters][years];
@@ -269,6 +274,10 @@ public class Taxes {
         }
         
         return contribution;
+    }
+    
+    public static void ssTaxCalc() {
+        
     }
     
     public static void itemDedCalc() {

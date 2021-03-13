@@ -16,7 +16,7 @@ public class Vars {
     
     public class Base {
         int loops = 100;
-        int years = 40; // Starting 2021
+        int years = 60; // Starting 2021
         int[] baseAges = {25,25};
         int[] retAges = {50,50};
         
@@ -32,8 +32,9 @@ public class Vars {
     
     public class Salary {
         int[] salBase   = {87406,95000};
-        double[] salGrowth = {0.025,0.032,0.05};
         int[][] prevSal = {{75000,79750},{83000,87720}};
+
+        double[] salGrowth = {0.025,0.032,0.05};
         
         int[][] salary;
         int[][] income;
@@ -379,6 +380,12 @@ public class Vars {
         }
         
         public class SocialSecurity {
+            int[] collectionAge = {70,70};
+            
+            int fra = 67;
+            double[] fraEarly = {(double) 5/900,(double) 5/1200};
+            double fraLate = (double) 5/900;
+                    
             double wageInd = 0.0325;
             double cola = 0.0138;
             

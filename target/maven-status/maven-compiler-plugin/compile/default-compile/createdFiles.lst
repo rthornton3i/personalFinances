@@ -58,7 +58,6 @@ com\personalfinances\Vars$Taxes$Federal$Fica$MED.class
 com\personalfinances\Utility.class
 com\personalfinances\Vars$Benefits$Health.class
 com\personalfinances\Utility$ArrayMath.class
-com\personalfinances\Vars.class
 com\personalfinances\Savings.class
 com\personalfinances\Reader.class
 com\personalfinances\Vars$Taxes$Federal$Fica.class
