@@ -495,6 +495,18 @@ public class Vars {
     }
     
     public class Allocations {
+        String[] accountName = {"HIGH DIVIDEND",
+                                "LOW VOLATILITY",
+                                "VALUE & GROWTH",
+                                "SECTOR & INDEX",
+                                "SWING & DAY",
+                                "ROTH 401K",
+                                "TRADITIONAL 401K",
+                                "COLLEGE 529",
+                                "LONG-TERM SAVINGS",
+                                "SHORT-TERM SAVINGS",
+                                "SPENDING"};
+        
         String[] accountType = {"INVESTING",
                                 "INVESTING",
                                 "INVESTING",

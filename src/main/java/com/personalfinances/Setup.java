@@ -126,18 +126,9 @@ public class Setup {
             }
         }
         
-        for (int i = 0; i < iters; i++) {
-            for (int j = 0; j < years; j++) {
-                if (filingType.toUpperCase().equals("JOINT")) {
-                    income[i][j] = Utility.ArrayMath.sumArray(new int[]{salary[0][j],salary[1][j]});
-                } else if (filingType.toUpperCase().equals("SEPARATE")) {
-                    income[i][j] = salary[i][j];
-                } else if (filingType.toUpperCase().equals("SINGLE")) {
-                    income[i][j] = salary[i][j];
-                }
-                
-                grossIncome[j] += salary[i][j];
-            }
+        switch (filingType.toUpperCase()) {
+            case "JOINT" ->    income = new int[][] {Utility.ArrayMath.sumArray2(salary,1)};
+            default ->         income = salary; // Assume Single
         }
     }
 
@@ -159,7 +150,7 @@ public class Setup {
         TaxDict.Federal.Fica.Filing socialSecurity;
         
         int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
-        int[] primIns = new int[iters];
+        int[] primIns = new int[numInd];
         int[] aime = new int[numInd];
         
         switch (filingType.toUpperCase()) {
@@ -172,7 +163,7 @@ public class Setup {
         int prevYrs;
         int yrInd;
         double growthFactor;
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < numInd; i++) {
             // SS WAGES
             prevYrs = prevSal[i].length;
             for (int j = 0; j < prevYrs; j++) {
@@ -249,6 +240,10 @@ public class Setup {
             for (int j = colYrs[i], k = 1; j < years; j++, k++) {
                 ssIns[i][j] = (int) (primIns[i] * Math.exp(cola * k) * 12);
             }
+        }
+        
+        switch (filingType.toUpperCase()) {
+            case "JOINT" -> ssIns = new int[][]{Utility.ArrayMath.sumArray2(ssIns, 1)};
         }
     }
     

@@ -8,6 +8,7 @@ public class TaxDict {
     public class Federal {
         FederalTax federal = new FederalTax();
         Fica fica = new Fica();
+        FederalTax ss = new FederalTax();
         Deductions deductions = new Deductions();
         Exemptions exemptions = new Exemptions();
         
@@ -35,6 +36,13 @@ public class TaxDict {
             fica.med.single.maxSal = 200000;
             fica.med.single.rate = 0.0145;
             fica.med.single.addRate = 0.009;
+            
+            ss.joint.bracketMax = new int[]{32000, 44000, (int) 1e9};
+            ss.joint.bracketPerc = new double[]{0, 0.5, 0.85};
+            ss.separate.bracketMax = new int[]{25000, 34000, (int) 1e9};
+            ss.separate.bracketPerc = new double[]{0, 0.5, 0.85};
+            ss.single.bracketMax = new int[]{25000, 34000, (int) 1e9};
+            ss.single.bracketPerc = new double[]{0, 0.5, 0.85};
         }
         
         public class FederalTax {

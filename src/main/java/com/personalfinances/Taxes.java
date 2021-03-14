@@ -7,6 +7,7 @@ public class Taxes {
     static int years;
     static int numInd;
     static int[][] income;
+    static int[][] ssIns;
     
     static String filingType;
     static String[] filingState;
@@ -24,6 +25,8 @@ public class Taxes {
     private static int[][] healthBen;
     
     private static double[][] perc401;
+    
+    private static int[][] taxableBenefits;
     
     private static int[][] saltTaxes;
     private static int[][] slpDed;
@@ -47,6 +50,8 @@ public class Taxes {
     private static int[][] localTax;
     private static int[][] fedTax;
     private static int[][] ficaTax;
+    private static int[][] ssTax;
+    private static int[][] medTax;
     
     private static int[] totalTaxes;
     private static int[] totalDeducted;
@@ -63,6 +68,7 @@ public class Taxes {
         years = vars.base.years;
         numInd = vars.base.numInd;
         income = vars.salary.income;
+        ssIns = vars.benefits.socialSecurity.ssIns;
         
         filingType = vars.filing.filingType;
         filingState = vars.filing.filingState; 
@@ -93,9 +99,8 @@ public class Taxes {
         vars.benefits.retirement.match.contribution = matchCalc(vars.benefits.retirement.match);
         
 //      Social Security
-//        ssTaxes = new int[iters][years];
-//        
-//        ssTaxCalc();
+        taxableBenefits = new int[iters][years];
+        ssTaxCalc();
 
 //      Deduction/Exemptions
         mortInt = new int[iters][years];
@@ -151,7 +156,9 @@ public class Taxes {
 //      Federal Taxes
         fedTax = new int[iters][years];
         ficaTax = new int[iters][years];
-
+        ssTax = new int[iters][years];
+        medTax = new int[iters][years];
+        
         fedTaxCalc();
         vars.taxes.federal.fedTax = fedTax;
         vars.taxes.federal.ficaTax = ficaTax;
@@ -277,7 +284,26 @@ public class Taxes {
     }
     
     public static void ssTaxCalc() {
+        TaxDict.Federal.FederalTax.Filing socialSecurity;
+             
+        switch (filingType.toUpperCase()) {
+            case "JOINT" ->    socialSecurity = taxes.federal.ss.joint;
+            case "SEPARATE" -> socialSecurity = taxes.federal.ss.separate;
+            case "SINGLE" ->   socialSecurity = taxes.federal.ss.single;
+            default ->         socialSecurity = taxes.federal.ss.single; // Assume Single 
+        }
         
+        int combinedIncome;   
+        for (int i = 0; i < iters; i++) {
+            for (int j = 0; j < years; j++) {
+                combinedIncome = income[i][j] + (ssIns[i][j] / 2);
+                for (int k = 0; k < socialSecurity.bracketMax.length; k++) {                    
+                    if (combinedIncome < socialSecurity.bracketMax[k]) {
+                        taxableBenefits[i][j] = (int) (socialSecurity.bracketPerc[k] * ssIns[i][j]);
+                    }
+                }
+            }
+        }
     }
     
     public static void itemDedCalc() {
@@ -465,9 +491,9 @@ public class Taxes {
         for (int i = 0; i < iters; i++) {
             for (int j = 0; j < years; j++) {
                 // FEDERAL
-                grossIncomeFed[i][j] = income[i][j] - (vars.benefits.retirement.traditional.contribution[i][j] + 
-                                                        healthDed[i][j] + 
-                                                        exemptFed[i][j]);
+                grossIncomeFed[i][j] = income[i][j] + taxableBenefits[i][j] - (vars.benefits.retirement.traditional.contribution[i][j] + 
+                                                                               healthDed[i][j] + 
+                                                                               exemptFed[i][j]);
                         
                 if (itemDedFed[i][j] > stdDedFed[i][j]) {
                     grossIncomeFed[i][j] -= itemDedFed[i][j];
@@ -491,6 +517,14 @@ public class Taxes {
                                                                     healthDed[i][j] + 
                                                                     persExemptState[i][j] + childExemptState[i][j]);
                     }
+                }
+                
+                switch (filingState[i].toUpperCase()) {
+                    case "CO", "CT", "KS", "MN", "MO", "MT", "NE", "NM", "ND", "RI", "UT", "VT", "WV" -> {
+                        grossIncomeState[i][j] += taxableBenefits[i][j];
+                    }
+                    
+                    default -> {}
                 }
                 
                 switch (filingState[i].toUpperCase()) {
@@ -649,7 +683,7 @@ public class Taxes {
                 totalWithheld[j] += ret.roth.contribution[i][j] +
                                     healthBen[i][j];
                 
-                netIncome[j] += vars.salary.income[i][j];
+                netIncome[j] += income[i][j];
                 netTradRet[j] += ret.traditional.contribution[i][j] + ret.match.contribution[i][j];
                 netRothRet[j] += ret.roth.contribution[i][j];
             }
