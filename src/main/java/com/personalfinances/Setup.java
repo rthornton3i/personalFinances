@@ -14,6 +14,9 @@ public class Setup {
     static double[] salGrowth;
     static int[][] prevSal;
     
+    static int rmdAge;
+    static double[] rmdFactor;
+    
     static int[] collectionAge;
     static int fra;
     static double[] fraEarly;
@@ -33,6 +36,9 @@ public class Setup {
     private static int iters;
     private static int[] retYrs;
     private static int[] colYrs;
+    
+    private static int[] rmdYrs;
+    private static int[][] rmdDist;
     
     private static int[][] salary;
     private static int[][] income;
@@ -58,6 +64,9 @@ public class Setup {
         salBases = vars.salary.salBase;
         salGrowth = vars.salary.salGrowth;
         prevSal = vars.salary.prevSal;
+        
+        rmdAge = vars.benefits.retirement.rmdAge;
+        rmdFactor = vars.benefits.retirement.rmdFactor;
         
         collectionAge = vars.benefits.socialSecurity.collectionAge;
         fra = vars.benefits.socialSecurity.fra;
@@ -112,10 +121,13 @@ public class Setup {
         socialSecurityCalc();
         vars.benefits.socialSecurity.ssIns = ssIns;
         
+        // Retirement Required Minimum Distribution
+        rmdDist = new int[numInd][years];
+        
         return vars;
     }
     
-    static void salaryCalc() {
+    public static void salaryCalc() {
         for (int i = 0; i < numInd; i++) {
             salary[i][0] = salBases[i];
             
@@ -132,7 +144,7 @@ public class Setup {
         }
     }
 
-    static void ageCalc() {
+    public static void ageCalc() {
         for (int i = 0; i < years; i++) {
             for (int j = 0; j < numInd; j++) {
                 ages[j][i] = baseAges[j] + i;
@@ -146,7 +158,7 @@ public class Setup {
         }
     }
     
-    static void socialSecurityCalc() {
+    public static void socialSecurityCalc() {
         TaxDict.Federal.Fica.Filing socialSecurity;
         
         int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
@@ -247,7 +259,7 @@ public class Setup {
         }
     }
     
-    static void socialSecurityCalc_INFLATION() {
+    public static void socialSecurityCalc_INFLATION() {
         TaxDict.Federal.Fica.Filing socialSecurity;
         
         int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];

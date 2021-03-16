@@ -4,18 +4,24 @@ import java.lang.Math;
 
 public class Savings {
     // Public Variables
-    static int years;    
+    static int years;  
+    static int numInd;
+    
     static int[][] ages;
     static int[] retAge;
+    
     static int[][] childAges;
     static int maxChildYr;
     
     static int[] netCash;
     static int numAccounts;
+    static String[] accountName;
     
     static Vars vars;
     
     // Private Variables
+    private static int[] rmdYrs;
+    
     private static double[][] allocations;
     private static double[][] earnings;
     private static int[][] contributions;
@@ -25,16 +31,25 @@ public class Savings {
         this.vars = vars;
         
         years = vars.base.years;
+        numInd = vars.base.numInd;
+        
         ages = vars.base.ages;
         retAge = vars.base.retAges;
+        
         childAges = vars.children.childAges;
         maxChildYr = vars.children.maxChildYr;
         
         netCash = vars.taxes.netCash;
         numAccounts = vars.allocations.numAccounts;
+        accountName = vars.allocations.accountName;
     }
     
-    public Vars run() {        
+    public Vars run() { 
+        rmdYrs = new int[numInd];
+        for (int i = 0; i < numInd; i++) {
+            rmdYrs[i] = vars.benefits.retirement.rmdAge - vars.base.baseAges[i];
+        }
+        
         savings = new int[numAccounts][years];
         contributions = new int[numAccounts][years];
         
@@ -117,17 +132,17 @@ public class Savings {
         for (int j = 0; j < years; j++) {
             // EXPENSES
             for (int i = 0; i < numAccounts; i++) {
-                switch (i) {
-                    case 7 -> {
+                switch (accountName[i].toUpperCase()) {
+                    case "COLLEGE 529" -> {
                         expenses[i] = exps.education.totalEd[j];
                     }
-                    case 8 -> {
+                    case "LONG-TERM SAVINGS" -> {
                         expenses[i] = house.houseDwn[j] + cars.carDwn[j] + exps.major.totalMajor[j];  
                     }
-                    case 9 -> {
+                    case "SHORT-TERM SAVINGS" -> {
                         expenses[i] = exps.vacation.totalVac[j] + exps.charity.totalChar[j] + exps.random.totalRand[j];  
                     }
-                    case 10 -> {
+                    case "SPENDING" -> {
                         expenses[i] = exps.housing.rent.totalRent[j] + exps.housing.house.totalHouse[j] + exps.cars.totalCar[j] + 
                                       exps.food.totalFood[j] + exps.entertain.totalEnt[j] + exps.personalCare.totalPers[j] +
                                       exps.healthcare.totalHealth[j] + exps.pet.totalPet[j] + exps.holiday.totalHol[j];  
@@ -148,11 +163,11 @@ public class Savings {
             // SAVINGS
             for (int i = 0; i < numAccounts; i++) {
                 // INCOME
-                switch (i) {
-                    case 5 -> { // ROTH 401k
+                switch (accountName[i].toUpperCase()) {
+                    case "ROTH 401K" -> { // ROTH 401k
                         savings[i][j] += ret.netRothRet[j];
                     }
-                    case 6 -> { // TRAD 401k
+                    case "TRADITIONAL 401K" -> { // TRAD 401k
                         savings[i][j] += ret.netTradRet[j];
                     }
                 }
@@ -175,11 +190,6 @@ public class Savings {
                 if (savings[i][j] > 0) {
                     savings[i][j] *= 1 + earnings[i][j];
                 }
-                
-//                if (expenses[i] > 0) {
-//                    System.out.println("Year " + j + " --- " + "Account " + i + " --- " + "Exp: " + expenses[i]);
-//                    System.out.println("Year " + j + " --- " + "Account " + i + " --- " + "Sav: " + savings[i][j]);
-//                }
             }
             
             // UNDERFLOW
@@ -195,17 +205,10 @@ public class Savings {
                 }
             } 
             
-            boolean retired = true;
-            for (int k = 0; k < retAge.length; k++) {
-                if (ages[k][j] < retAge[k]) {
-                    retired = false;
-                    break;
-                }
-            }
-            
-            if (retired) {
-                for (int i = 0; i < numAccounts; i++) {
-                    
+            // Retirement RMD
+            for (int i = 0; i < numInd; i++) {
+                if (j >= rmdYrs[i]) {
+
                 }
             }
             

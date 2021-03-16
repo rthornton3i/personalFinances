@@ -350,6 +350,10 @@ public class Vars {
             Args roth = new Args();
             Args match = new Args();
             
+            int rmdAge = 75;
+            double[] rmdFactor = {0.00962,2.345,144.617};
+            
+            int[][] rmdDist;
             int[] netTradRet;
             int[] netRothRet;
             

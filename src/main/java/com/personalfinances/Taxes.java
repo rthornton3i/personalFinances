@@ -7,6 +7,7 @@ public class Taxes {
     static int years;
     static int numInd;
     static int[][] income;
+    
     static int[][] ssIns;
     
     static String filingType;
@@ -68,6 +69,7 @@ public class Taxes {
         years = vars.base.years;
         numInd = vars.base.numInd;
         income = vars.salary.income;
+        
         ssIns = vars.benefits.socialSecurity.ssIns;
         
         filingType = vars.filing.filingType;
@@ -136,7 +138,6 @@ public class Taxes {
 //      Gross Earnings
         grossIncomeFed = new int[iters][years];
         grossIncomeState = new int[iters][years];
-        
         grossEarnCalc();
         
 //      State Taxes
