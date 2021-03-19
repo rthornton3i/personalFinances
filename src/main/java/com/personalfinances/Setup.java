@@ -14,9 +14,6 @@ public class Setup {
     static double[] salGrowth;
     static int[][] prevSal;
     
-    static int rmdAge;
-    static double[] rmdFactor;
-    
     static int[] collectionAge;
     static int fra;
     static double[] fraEarly;
@@ -35,10 +32,6 @@ public class Setup {
     // Private Variables
     private static int iters;
     private static int[] retYrs;
-    private static int[] colYrs;
-    
-    private static int[] rmdYrs;
-    private static int[][] rmdDist;
     
     private static int[][] salary;
     private static int[][] income;
@@ -65,9 +58,6 @@ public class Setup {
         salGrowth = vars.salary.salGrowth;
         prevSal = vars.salary.prevSal;
         
-        rmdAge = vars.benefits.retirement.rmdAge;
-        rmdFactor = vars.benefits.retirement.rmdFactor;
-        
         collectionAge = vars.benefits.socialSecurity.collectionAge;
         fra = vars.benefits.socialSecurity.fra;
         fraEarly = vars.benefits.socialSecurity.fraEarly;
@@ -86,15 +76,11 @@ public class Setup {
             case "JOINT" -> iters = 1;
             case "SEPARATE", "SINGLE" -> iters = numInd;
         }
+        vars.filing.iters = iters;
         
         retYrs = new int[numInd];
         for (int i = 0; i < numInd; i++) {
             retYrs[i] = retAges[i] - baseAges[i];
-        }
-        
-        colYrs = new int[numInd];
-        for (int i = 0; i < numInd; i++) {
-            colYrs[i] = collectionAge[i] - baseAges[i];
         }
                 
         // Ages
@@ -120,10 +106,6 @@ public class Setup {
         
         socialSecurityCalc();
         vars.benefits.socialSecurity.ssIns = ssIns;
-        
-        // Retirement Required Minimum Distribution
-        rmdDist = new int[numInd][years];
-        
         return vars;
     }
     
@@ -160,6 +142,11 @@ public class Setup {
     
     public static void socialSecurityCalc() {
         TaxDict.Federal.Fica.Filing socialSecurity;
+        
+        int[] colYrs = new int[numInd];
+        for (int i = 0; i < numInd; i++) {
+            colYrs[i] = collectionAge[i] - baseAges[i];
+        }
         
         int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
         int[] primIns = new int[numInd];
@@ -256,95 +243,6 @@ public class Setup {
         
         switch (filingType.toUpperCase()) {
             case "JOINT" -> ssIns = new int[][]{Utility.ArrayMath.sumArray2(ssIns, 1)};
-        }
-    }
-    
-    public static void socialSecurityCalc_INFLATION() {
-        TaxDict.Federal.Fica.Filing socialSecurity;
-        
-        int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
-        int[] primIns = new int[iters];
-        int[] aime = new int[numInd];
-        
-        switch (filingType.toUpperCase()) {
-            case "JOINT" ->    socialSecurity = taxes.federal.fica.ss.joint;
-            case "SEPARATE" -> socialSecurity = taxes.federal.fica.ss.separate;
-            case "SINGLE" ->   socialSecurity = taxes.federal.fica.ss.single;
-            default ->         socialSecurity = taxes.federal.fica.ss.single; // Assume Single 
-        }
-        
-        int prevYrs;
-        int yrInd;
-        double growthFactor;
-        for (int i = 0; i < iters; i++) {
-            // SS WAGES
-            prevYrs = prevSal[i].length;
-            for (int j = 0; j < prevYrs; j++) {
-                yrInd = colYrs[i] - j;
-                growthFactor = Math.exp(wageInd * yrInd);
-                
-                ssWages[i][j] = prevSal[i][j];
-                ssWages[i][j] *= growthFactor;
-                
-                if (ssWages[i][j] > socialSecurity.maxSal * growthFactor) {
-                    ssWages[i][j] = (int) (socialSecurity.maxSal * growthFactor);
-                }
-            }
-            
-            for (int j = 0; j < years; j++) {
-                yrInd = colYrs[i] - (j + prevYrs);
-                growthFactor = Math.exp(wageInd * yrInd);
-                
-                ssWages[i][j+prevYrs] = salary[i][j];
-                ssWages[i][j+prevYrs] *= growthFactor;
-                
-                if (ssWages[i][j+prevYrs] > socialSecurity.maxSal * growthFactor) {
-                    ssWages[i][j+prevYrs] = (int) (socialSecurity.maxSal * growthFactor);
-                }
-            }
-            
-            ssWages[i] = Utility.ArrayMath.maxArray(ssWages[i], 35);      
-            aime[i] = Utility.ArrayMath.sumArray(ssWages[i]) / 35 / 12;
-            
-            // BEND POINTS
-            int tempAime = aime[i];
-            int prevBend = 0;
-            for (int k = 0; k < 3; k++) {
-                int bendPt;
-                if (k < 2) {
-                    bendPt = (int) (bendPts[k] + (colYrs[i] * (colYrs[i] * bendSlope[k][0] + bendSlope[k][1])));
-                } else {
-                    bendPt = (int) 1e9;
-                }
-                
-                int bracketAmt;
-                if (aime[i] > bendPt) {
-                    bracketAmt = (int) (bendPerc[k] * (bendPt - prevBend));
-                } else {
-                    bracketAmt = (int) (bendPerc[k] * tempAime);
-                }
-                primIns[i] += bracketAmt;
-                tempAime -= bracketAmt;
-                
-                prevBend = bendPt;
-            }
-            
-            // FULL RETIREMENT AGE ADJUSTMENTS
-            int earlyClaim = 0;
-            if (collectionAge[i] < fra) {
-                earlyClaim = (fra - collectionAge[i]) * 12;
-            }
-            
-            if (earlyClaim > 36) {
-                primIns[i] -= (int) (((36 * fraEarly[0]) * primIns[i]) + (((earlyClaim - 36) * fraEarly[1]) * primIns[i]));
-            } else {
-                primIns[i] -= (int) ((earlyClaim * fraEarly[0]) * primIns[i]);
-            }
-            
-            // COLA ADJUSTMENTS
-            for (int j = colYrs[i], k = 1; j < years; j++, k++) {
-                ssIns[i][j] = (int) (primIns[i] * Math.exp(cola * k) * 12);
-            }
         }
     }
 }

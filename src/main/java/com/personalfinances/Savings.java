@@ -6,9 +6,12 @@ public class Savings {
     // Public Variables
     static int years;  
     static int numInd;
-    
     static int[][] ages;
+    
     static int[] retAge;
+    static int rmdAge;
+    static double[] rmdFactor;
+    
     
     static int[][] childAges;
     static int maxChildYr;
@@ -20,8 +23,6 @@ public class Savings {
     static Vars vars;
     
     // Private Variables
-    private static int[] rmdYrs;
-    
     private static double[][] allocations;
     private static double[][] earnings;
     private static int[][] contributions;
@@ -36,6 +37,9 @@ public class Savings {
         ages = vars.base.ages;
         retAge = vars.base.retAges;
         
+        rmdAge = vars.benefits.retirement.rmdAge;
+        rmdFactor = vars.benefits.retirement.rmdFactor;
+        
         childAges = vars.children.childAges;
         maxChildYr = vars.children.maxChildYr;
         
@@ -44,12 +48,7 @@ public class Savings {
         accountName = vars.allocations.accountName;
     }
     
-    public Vars run() { 
-        rmdYrs = new int[numInd];
-        for (int i = 0; i < numInd; i++) {
-            rmdYrs[i] = vars.benefits.retirement.rmdAge - vars.base.baseAges[i];
-        }
-        
+    public Vars run() {
         savings = new int[numAccounts][years];
         contributions = new int[numAccounts][years];
         
@@ -206,11 +205,16 @@ public class Savings {
             } 
             
             // Retirement RMD
-            for (int i = 0; i < numInd; i++) {
-                if (j >= rmdYrs[i]) {
-
-                }
-            }
+//            int rmdDist;
+//            boolean rmd = false;
+//            for (int i = 0; i < numInd; i++) {
+//                if (j >= rmdAge - vars.base.baseAges[i]) {
+//                    rmd = true;
+//                }
+//            }
+//            double ageFactor = ages[i][j] * Math.pow(rmdFactor[0],2) + ages[i][j] * rmdFactor[1] + rmdFactor[2];
+//                    rmdDist = 
+//vars.allocations.capGainsType[indFrom]
             
             // OVERFLOW
             for (int[] over : vars.allocations.overflow) {

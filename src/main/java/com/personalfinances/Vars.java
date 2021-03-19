@@ -28,6 +28,8 @@ public class Vars {
     public class Filing {
         String filingType = "SEPARATE";
         String[] filingState = {"NJ","NJ"};
+        
+        int iters;
     }
     
     public class Salary {
@@ -350,7 +352,7 @@ public class Vars {
             Args roth = new Args();
             Args match = new Args();
             
-            int rmdAge = 75;
+            int rmdAge = 72;
             double[] rmdFactor = {0.00962,2.345,144.617};
             
             int[][] rmdDist;
