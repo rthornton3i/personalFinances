@@ -14,16 +14,6 @@ public class Setup {
     static double[] salGrowth;
     static int[][] prevSal;
     
-    static int[] collectionAge;
-    static int fra;
-    static double[] fraEarly;
-    static double fraLate;
-    static double wageInd;
-    static double cola;
-    static double[] bendPerc;
-    static int[] bendPts;
-    static double[][] bendSlope;
-    
     static String filingType;
     
     static Vars vars;
@@ -31,7 +21,6 @@ public class Setup {
     
     // Private Variables
     private static int iters;
-    private static int[] retYrs;
     
     private static int[][] salary;
     private static int[][] income;
@@ -58,16 +47,6 @@ public class Setup {
         salGrowth = vars.salary.salGrowth;
         prevSal = vars.salary.prevSal;
         
-        collectionAge = vars.benefits.socialSecurity.collectionAge;
-        fra = vars.benefits.socialSecurity.fra;
-        fraEarly = vars.benefits.socialSecurity.fraEarly;
-        fraLate = vars.benefits.socialSecurity.fraLate;
-        wageInd = vars.benefits.socialSecurity.wageInd;
-        cola = vars.benefits.socialSecurity.cola;
-        bendPts = vars.benefits.socialSecurity.bendPts;
-        bendSlope = vars.benefits.socialSecurity.bendSlope;
-        bendPerc = vars.benefits.socialSecurity.bendPerc;
-        
         filingType = vars.filing.filingType;
     }
     
@@ -77,11 +56,6 @@ public class Setup {
             case "SEPARATE", "SINGLE" -> iters = numInd;
         }
         vars.filing.iters = iters;
-        
-        retYrs = new int[numInd];
-        for (int i = 0; i < numInd; i++) {
-            retYrs[i] = retAges[i] - baseAges[i];
-        }
                 
         // Ages
         ages = new int[numInd][years];
@@ -109,12 +83,12 @@ public class Setup {
         return vars;
     }
     
-    public static void salaryCalc() {
+    public static void salaryCalc() {        
         for (int i = 0; i < numInd; i++) {
             salary[i][0] = salBases[i];
             
             for (int j = 1; j < years; j++) {
-                if (j < retYrs[i]) {
+                if (j < retAges[i] - baseAges[i]) {
                     salary[i][j] = (int) (salary[i][j-1] * (1 + Utility.Generator.triRand(salGrowth[0],salGrowth[1],salGrowth[2])));
                 }
             }
@@ -142,10 +116,11 @@ public class Setup {
     
     public static void socialSecurityCalc() {
         TaxDict.Federal.Fica.Filing socialSecurity;
+        Vars.Benefits.SocialSecurity ss = vars.benefits.socialSecurity;
         
         int[] colYrs = new int[numInd];
         for (int i = 0; i < numInd; i++) {
-            colYrs[i] = collectionAge[i] - baseAges[i];
+            colYrs[i] = ss.collectionAge[i] - baseAges[i];
         }
         
         int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
@@ -167,7 +142,7 @@ public class Setup {
             prevYrs = prevSal[i].length;
             for (int j = 0; j < prevYrs; j++) {
                 yrInd = colYrs[i] - j;
-                growthFactor = Math.exp(wageInd * yrInd);
+                growthFactor = Math.exp(ss.wageInd * yrInd);
                 
                 ssWages[i][j] = prevSal[i][j];
                 ssWages[i][j] *= growthFactor;
@@ -179,7 +154,7 @@ public class Setup {
             
             for (int j = 0; j < years; j++) {
                 yrInd = colYrs[i] - (j + prevYrs);
-                growthFactor = Math.exp(wageInd * yrInd);
+                growthFactor = Math.exp(ss.wageInd * yrInd);
                 
                 ssWages[i][j+prevYrs] = salary[i][j];
                 ssWages[i][j+prevYrs] *= growthFactor;
@@ -198,16 +173,16 @@ public class Setup {
             for (int k = 0; k < 3; k++) {
                 int bendPt;
                 if (k < 2) {
-                    bendPt = bendPts[k];
+                    bendPt = ss.bendPts[k];
                 } else {
                     bendPt = (int) 1e9;
                 }
                 
                 int bracketAmt;
                 if (aime[i] > bendPt) {
-                    bracketAmt = (int) (bendPerc[k] * (bendPt - prevBend));
+                    bracketAmt = (int) (ss.bendPerc[k] * (bendPt - prevBend));
                 } else {
-                    bracketAmt = (int) (bendPerc[k] * tempAime);
+                    bracketAmt = (int) (ss.bendPerc[k] * tempAime);
                 }
                 primIns[i] += bracketAmt;
                 tempAime -= bracketAmt;
@@ -218,26 +193,26 @@ public class Setup {
             // FULL RETIREMENT AGE ADJUSTMENTS
             int earlyClaim = 0;
             int lateClaim = 0;
-            if (collectionAge[i] < fra) {
-                earlyClaim = (fra - collectionAge[i]) * 12;
+            if (ss.collectionAge[i] < ss.fra) {
+                earlyClaim = (ss.fra - ss.collectionAge[i]) * 12;
             } else {
-                lateClaim = (collectionAge[i] - fra) * 12;
+                lateClaim = (ss.collectionAge[i] - ss.fra) * 12;
                 if (lateClaim > 36) {
                     lateClaim = 36;
                 }
             }
             
             if (earlyClaim > 36) {
-                primIns[i] -= (int) (((36 * fraEarly[0]) * primIns[i]) + (((earlyClaim - 36) * fraEarly[1]) * primIns[i]));
+                primIns[i] -= (int) (((36 * ss.fraEarly[0]) * primIns[i]) + (((earlyClaim - 36) * ss.fraEarly[1]) * primIns[i]));
             } else {
-                primIns[i] -= (int) ((earlyClaim * fraEarly[0]) * primIns[i]);
+                primIns[i] -= (int) ((earlyClaim * ss.fraEarly[0]) * primIns[i]);
             }
             
-            primIns[i] += (int) ((lateClaim * fraLate) * primIns[i]);
+            primIns[i] += (int) ((lateClaim * ss.fraLate) * primIns[i]);
             
             // COLA ADJUSTMENTS
             for (int j = colYrs[i], k = 1; j < years; j++, k++) {
-                ssIns[i][j] = (int) (primIns[i] * Math.exp(cola * k) * 12);
+                ssIns[i][j] = (int) (primIns[i] * Math.exp(ss.cola * k) * 12);
             }
         }
         
