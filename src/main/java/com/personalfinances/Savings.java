@@ -6,15 +6,6 @@ public class Savings {
     // Public Variables
     static int years;  
     static int numInd;
-    static int[][] ages;
-    
-    static int[] retAge;
-    static int rmdAge;
-    static double[] rmdFactor;
-    
-    
-    static int[][] childAges;
-    static int maxChildYr;
     
     static int[] netCash;
     static int numAccounts;
@@ -33,15 +24,6 @@ public class Savings {
         
         years = vars.base.years;
         numInd = vars.base.numInd;
-        
-        ages = vars.base.ages;
-        retAge = vars.base.retAges;
-        
-        rmdAge = vars.benefits.retirement.rmdAge;
-        rmdFactor = vars.benefits.retirement.rmdFactor;
-        
-        childAges = vars.children.childAges;
-        maxChildYr = vars.children.maxChildYr;
         
         netCash = vars.taxes.netCash;
         numAccounts = vars.allocations.numAccounts;
@@ -129,6 +111,17 @@ public class Savings {
         int[] expenses = new int[numAccounts];
                        
         for (int j = 0; j < years; j++) {
+            // Retirement RMD
+            double rmd = 0;
+            int avgAge = 0;
+            for (int i = 0; i < numInd; i++) {
+                avgAge += vars.base.ages[i][j];
+                if (j >= ret.rmdAge - vars.base.baseAges[i]) {
+                    rmd += (double) vars.salary.salBase[i] / Utility.ArrayMath.sumArray(vars.salary.salBase);
+                }
+            }
+            avgAge /= numInd;
+            
             // EXPENSES
             for (int i = 0; i < numAccounts; i++) {
                 switch (accountName[i].toUpperCase()) {
@@ -160,17 +153,7 @@ public class Savings {
             int remCash = netCash[j] - netCont;
             
             // SAVINGS
-            for (int i = 0; i < numAccounts; i++) {
-                // INCOME
-                switch (accountName[i].toUpperCase()) {
-                    case "ROTH 401K" -> { // ROTH 401k
-                        savings[i][j] += ret.netRothRet[j];
-                    }
-                    case "TRADITIONAL 401K" -> { // TRAD 401k
-                        savings[i][j] += ret.netTradRet[j];
-                    }
-                }
-                
+            for (int i = 0; i < numAccounts; i++) {                
                 // CONTRIBUTIONS
                 if (j == 0) {
                     savings[i][j] += vars.allocations.baseSavings[i];
@@ -184,6 +167,27 @@ public class Savings {
                 
                 // EXPENSES
                 savings[i][j] -= expenses[i];
+                int rmdDist = 0;
+                switch (accountName[i].toUpperCase()) {
+                    case "ROTH 401K", "TRADITIONAL 401K" -> {
+                        if (rmd > 0) {
+                            int accValue = (int) (savings[i][j] * rmd);
+                            double ageFactor = avgAge * Math.pow(ret.rmdFactor[0],2) + avgAge * ret.rmdFactor[1] + ret.rmdFactor[2];
+                            rmdDist = (int) (accValue / ageFactor);
+                        }
+                    }
+                }
+                
+                switch (accountName[i].toUpperCase()) {
+                    case "ROTH 401K" -> { // ROTH 401k
+                        savings[i][j] += ret.netRothRet[j];
+                        savings[i][j] -= rmdDist;
+                    }
+                    case "TRADITIONAL 401K" -> { // TRAD 401k                        
+                        savings[i][j] += ret.netTradRet[j];
+                        savings[i][j] -= rmdDist;
+                    }
+                }
 
                 // EARNINGS
                 if (savings[i][j] > 0) {
@@ -204,18 +208,6 @@ public class Savings {
                 }
             } 
             
-            // Retirement RMD
-//            int rmdDist;
-//            boolean rmd = false;
-//            for (int i = 0; i < numInd; i++) {
-//                if (j >= rmdAge - vars.base.baseAges[i]) {
-//                    rmd = true;
-//                }
-//            }
-//            double ageFactor = ages[i][j] * Math.pow(rmdFactor[0],2) + ages[i][j] * rmdFactor[1] + rmdFactor[2];
-//                    rmdDist = 
-//vars.allocations.capGainsType[indFrom]
-            
             // OVERFLOW
             for (int[] over : vars.allocations.overflow) {
                 if (over.length == 4) {
@@ -230,8 +222,8 @@ public class Savings {
             }
             
             boolean childMax = false;
-            for (int i = 0; i < childAges.length; i++) {
-                if (childAges[i][j] > maxChildYr) {
+            for (int i = 0; i < vars.children.childAges.length; i++) {
+                if (vars.children.childAges[i][j] > vars.children.maxChildYr) {
                     childMax = true;
                 }
             }

@@ -51,8 +51,6 @@ public class Taxes {
     private static int[][] localTax;
     private static int[][] fedTax;
     private static int[][] ficaTax;
-    private static int[][] ssTax;
-    private static int[][] medTax;
     
     private static int[] totalTaxes;
     private static int[] totalDeducted;
@@ -157,8 +155,6 @@ public class Taxes {
 //      Federal Taxes
         fedTax = new int[iters][years];
         ficaTax = new int[iters][years];
-        ssTax = new int[iters][years];
-        medTax = new int[iters][years];
         
         fedTaxCalc();
         vars.taxes.federal.fedTax = fedTax;

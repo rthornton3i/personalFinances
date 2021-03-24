@@ -94,7 +94,6 @@ public class Expenses { //extends Thread {
         
         for (int i = 0; i < years; i++) {
             totalCar[i] = cars.carPay[i];
-//            System.out.println(cars.carWth[i] * (cars.repairs));
             for (int j = 0; j < childAges.length; j++) {
                 if (childAges[j][i] > 16 && childAges[j][i] < maxChildYr) {
                     totalCar[i] += (cars.carWth[i] * (cars.repairs)) * (1 + cars.insRepChildFactor);
@@ -170,7 +169,7 @@ public class Expenses { //extends Thread {
         Vars.Expenses.Healthcare health = vars.expenses.healthcare;
 
         int[][] totalHealth = new int[numInd][years];
-        int[][] totalHsa = new int[numInd][years];
+//        int[][] totalHsa = new int[numInd][years];
         
         int[][] numVisits = {Utility.Generator.rangeRand(health.visits, years, "UNIFORM"),
                              Utility.Generator.rangeRand(health.visits, years, "UNIFORM")};
