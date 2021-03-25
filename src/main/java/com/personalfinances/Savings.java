@@ -18,6 +18,7 @@ public class Savings {
     private static double[][] earnings;
     private static int[][] contributions;
     private static int[][] savings;
+    private static int[][] withdrawals;
     
     public Savings(Vars vars) {
         this.vars = vars;
@@ -33,6 +34,7 @@ public class Savings {
     public Vars run() {
         savings = new int[numAccounts][years];
         contributions = new int[numAccounts][years];
+        withdrawals = new int[numAccounts][years];
         
         allocations = allocCalc(vars.allocations.allocations);
         earnings = earningCalc(vars.allocations.earnings,vars.allocations.accountType);
