@@ -92,7 +92,7 @@ public class Taxes {
         vars.benefits.health.healthBen = healthBen;
         
 //      Retirement
-        perc401 = new double[iters][years];
+        perc401 = new double[numInd][years];
         
         vars.benefits.retirement.traditional.contribution = retCalc(vars.benefits.retirement.traditional);
         vars.benefits.retirement.roth.contribution = retCalc(vars.benefits.retirement.roth);
@@ -218,15 +218,15 @@ public class Taxes {
     }
     
     public static int[][] retCalc(Vars.Benefits.Retirement.Args retirement) {        
-        double[][] ret401Perc = new double[iters][years];
+        double[][] ret401Perc = new double[numInd][years];
         
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < numInd; i++) {
             for (int j = 0; j < years; j++) {
                 ret401Perc[i][j] = retirement.basePerc;
             }
         }
         
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < numInd; i++) {
             for (int j = 0; j < years; j++) {
                 if (j % retirement.binWid == 0) {
                     for (int n = j; n < years; n++) {
@@ -236,12 +236,12 @@ public class Taxes {
             }
         }
         
-        perc401 = Utility.ArrayMath.sumArrays2D(new int[]{iters,years},perc401,ret401Perc);        
-        int[][] contribution =  Utility.Conversion.double2int2(new int[]{iters,years},
-                                    Utility.ArrayMath.multArrays2(new int[]{iters,years},ret401Perc,
-                                        Utility.Conversion.int2double2(new int[]{iters,years},income)));
+        perc401 = Utility.ArrayMath.sumArrays2D(new int[]{numInd,years},perc401,ret401Perc);        
+        int[][] contribution =  Utility.Conversion.double2int2(new int[]{numInd,years},
+                                    Utility.ArrayMath.multArrays2(new int[]{numInd,years},ret401Perc,
+                                        Utility.Conversion.int2double2(new int[]{numInd,years},income)));
         
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < numInd; i++) {
             for (int j = 0; j < years; j++) {
                 if (contribution[i][j] > retirement.maxCont) {
                     contribution[i][j] = retirement.maxCont;
@@ -253,9 +253,9 @@ public class Taxes {
     }
     
     public static int[][] matchCalc(Vars.Benefits.Retirement.Args retirement) {        
-        double[][] match401Perc = new double[iters][years];
+        double[][] match401Perc = new double[numInd][years];
         
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < numInd; i++) {
             for (int j = 0; j < years; j++) {
                 if (perc401[i][j] <= retirement.maxPerc) {
                     match401Perc[i][j] = perc401[i][j];
@@ -265,11 +265,11 @@ public class Taxes {
             }
         }
         
-        int[][] contribution =  Utility.Conversion.double2int2(new int[]{iters,years},
-                                    Utility.ArrayMath.multArrays2(new int[]{iters,years},match401Perc,
-                                        Utility.Conversion.int2double2(new int[]{iters,years},income)));
+        int[][] contribution =  Utility.Conversion.double2int2(new int[]{numInd,years},
+                                    Utility.ArrayMath.multArrays2(new int[]{numInd,years},match401Perc,
+                                        Utility.Conversion.int2double2(new int[]{numInd,years},income)));
         
-        for (int i = 0; i < iters; i++) {
+        for (int i = 0; i < numInd; i++) {
             for (int j = 0; j < years; j++) {
                 if (contribution[i][j] > retirement.maxCont) {
                     contribution[i][j] = retirement.maxCont;
