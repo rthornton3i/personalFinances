@@ -123,7 +123,7 @@ public class Setup {
             colYrs[i] = ss.collectionAge[i] - baseAges[i];
         }
         
-        int[][] ssWages = new int[numInd][years+vars.salary.prevSal[0].length];
+        int[][] ssWages = new int[numInd][years+prevSal[0].length];
         int[] primIns = new int[numInd];
         int[] aime = new int[numInd];
         

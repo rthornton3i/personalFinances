@@ -17,8 +17,8 @@ public class Vars {
     public class Base {
         int loops = 100;
         int years = 60; // Starting 2021
-        int[] baseAges = {25,25};
-        int[] retAges = {50,50};
+        int[] baseAges = {26,26};
+        int[] retAges = {55,55};
         
         int[][] ages;
         
@@ -26,17 +26,17 @@ public class Vars {
     }
     
     public class Filing {
-        String filingType = "SEPARATE";
+        String filingType = "JOINT";
         String[] filingState = {"NJ","NJ"};
         
         int iters;
     }
     
     public class Salary {
-        int[] salBase   = {87406,95000};
-        int[][] prevSal = {{75000,79750},{83000,87720}};
+        int[] salBase   = {90030,97755};
+        int[][] prevSal = {{75000,79750,88940},{83000,87720,95000}};
 
-        double[] salGrowth = {0.025,0.032,0.05};
+        double[] salGrowth = {0.025,0.035,0.05};
         
         int[][] salary;
         int[][] income;
@@ -44,7 +44,7 @@ public class Vars {
     }
     
     public class Children {
-        int[] childYrs = {4,6};
+        int[] childYrs = {3,5};
         int maxChildYr = 22;
         
         int[][] childAges;
@@ -136,13 +136,13 @@ public class Vars {
             }
 
             public class House {            
-                int[] purYr   = {1      , 18     , 33};
+                int[] purYr   = {0      , 18     , 33};
                 int[] sellYr  = {18     , 33     , -1};
                 int[] term    = {30     , 20     , 15};
-                double[] rate = {3.25   , 4      , 3.25};
-                int[] prin    = {450000 , 750000 , 1250000};
+                double[] rate = {2.75   , 4      , 3.25};
+                int[] prin    = {575000 , 750000 , 1250000};
                 double[] down = {20     , 20     , 20};
-                double[] app  = {2.75   , 2.75   , 2.75};
+                double[] app  = {2.5    , 2.75   , 2.75};
 
                 int preBal = 0;
                 int preWth = 0;
@@ -150,7 +150,7 @@ public class Vars {
                 // Percent of worth
                 double propTax = 0.0195;
                 double repairs  = 0.0125;
-                double insurance = 0.005;
+                double insurance = 0.0035;
                 
                 // Total cost per month
                 double electricity = 150;
@@ -309,9 +309,7 @@ public class Vars {
         public class Major {
             int[] totalMajor;
             
-            int[][] wedding =  {{0,7000},
-                                {0,11000},
-                                {1,35000}};
+            int[][] wedding =  {{1,55000}};
         }
         
         public class Random {
@@ -546,7 +544,7 @@ public class Vars {
                              0,                              //retTrad401 
                              1700,                           //col529      (Fidelity)
                              73000 + 30000,                  //longTerm    (Goldman Sach's)
-                             7000 + 10000,                   //shortTerm   (PNC Growth, BoA Savings)
+                             1000,                   //shortTerm   (PNC Growth, BoA Savings)
                              5000 + 10000};                  //spend       (PNC Spend, BoA Spend)
         
         double[][] allocations = {{1 , 1 , 2 , 3 , 3},     // 0 - hiDiv
