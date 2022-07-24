@@ -33,7 +33,7 @@ public class Vars {
     }
     
     public class Salary {
-        int[] salBase   = {90030,97755};
+        int[] salBase   = {90030,107900};
         int[][] prevSal = {{75000,79750,88940},{83000,87720,95000}};
 
         double[] salGrowth = {0.025,0.035,0.05};
@@ -87,7 +87,7 @@ public class Vars {
             int preWth = 0;
             
             // Total cost per month
-            int insurance = 170+160;
+            int insurance = 100+110;
             // Percent of worth (payment**)
             double repairs = 0.025; //{100,400,2500};
             
@@ -95,8 +95,8 @@ public class Vars {
             double insRepChildFactor = 0.35;
 
             // Total cost per month
-            int fuel   = 150;
-            int ezpass = (3*20) + (10*4);
+            int fuel   = 400;
+            int ezpass = 300;
             
             // Additional cost relative to pre-child expense
             double fuelEzChildFactor = 0.25;
@@ -136,25 +136,25 @@ public class Vars {
             }
 
             public class House {            
-                int[] purYr   = {0      , 18     , 33};
+                int[] purYr   = {-1     , 18     , 33};
                 int[] sellYr  = {18     , 33     , -1};
                 int[] term    = {30     , 20     , 15};
                 double[] rate = {2.75   , 4      , 3.25};
-                int[] prin    = {575000 , 750000 , 1250000};
+                int[] prin    = {562500 , 750000 , 1250000};
                 double[] down = {20     , 20     , 20};
-                double[] app  = {2.5    , 2.75   , 2.75};
+                double[] app  = {2.0    , 2.75   , 2.75};
 
                 int preBal = 0;
                 int preWth = 0;
                 
                 // Percent of worth
-                double propTax = 0.0195;
+                double propTax = 0.017;
                 double repairs  = 0.0125;
                 double insurance = 0.0035;
                 
                 // Total cost per month
-                double electricity = 150;
-                double gas = 30;          
+                double electricity = 3.5*30;
+                double gas = 3.2*30;          
                 double water = 50;
 
                 int[] houseBal;
@@ -172,8 +172,11 @@ public class Vars {
         
         public class Food {
             // Total cost per month
-            int groceries = 600;
+            int groceries = 650;
             int restaurants = 200;
+            int alcohol = 30;
+            int fastFood = 30;
+            int workFood = 30;
             
             // Additional cost relative to pre-child expense
             double childFactor = 0.4;
@@ -185,10 +188,20 @@ public class Vars {
         
         public class Entertain {
             // Total cost per month
-            int wifi = 40;
+            int wifi = 55;
             int cell = 80;
             int tv   = 0;
-            int subs = 120+0+144+60+70; // Amazon, Netflix, Hulu, Google, Microsoft
+            int subs =  (130/12)+   //Amazon
+                        14+         //Hulu
+                        (60/12)+    //Nest
+                        (85/12)+    //Disney+
+                        (130/12)+   //Costco
+                        10+         //F1
+                        (220/12)+   //Beach Badge
+                        (625/12)+   //Chase
+                        (75/12)+    //Microsoft
+                        (22/12)+    //Nintendo
+                        (120/12);   //Dropbox
             
             // Additional cost relative to pre-child expense
             double childFactor = 0.25;

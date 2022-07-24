@@ -78,7 +78,14 @@ public class Expenses { //extends Thread {
         
         int[] totalHouse = new int[years];
         
-        for (int i = house.purYr[0]; i < years; i++) {
+        int firstYear;
+        if (house.purYr[0] < 0) {
+            firstYear = 0;
+        } else {
+            firstYear = house.purYr[0];
+        }
+        
+        for (int i = firstYear; i < years; i++) {
             totalHouse[i] = house.housePay[i];
             totalHouse[i] += house.houseWth[i] * (house.repairs + house.insurance);
             totalHouse[i] += (house.electricity + house.gas + house.water) * 12;
@@ -114,7 +121,7 @@ public class Expenses { //extends Thread {
         int[] totalFood = new int[years];
         
         for (int i = 0; i < years; i++) {
-            totalFood[i] = (food.groceries + food.restaurants) * 12;
+            totalFood[i] = (food.groceries + food.restaurants + food.alcohol + food.fastFood + food.workFood) * 12;
             totalFood[i] = (int) (totalFood[i] * (1 + ((double) i / years * food.growthFactor)));
             
             for (int j = 0; j < childAges.length; j++) {
@@ -133,7 +140,7 @@ public class Expenses { //extends Thread {
         int[] totalEnt = new int[years];
         
         for (int i = 0; i < years; i++) {
-            totalEnt[i] = (entertain.wifi + entertain.cell + entertain.tv) * 12;
+            totalEnt[i] = (entertain.wifi + entertain.cell + entertain.tv + entertain.subs) * 12;
             totalEnt[i] = (int) (totalEnt[i] * (1 + ((double) i / years * entertain.growthFactor)));
             
             for (int j = 0; j < childAges.length; j++) {
