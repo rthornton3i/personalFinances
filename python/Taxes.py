@@ -81,8 +81,8 @@ class Taxes:
         \
         self.vars.taxes.netIncome, \
         self.vars.taxes.netCash, \
-        self.vars.benefits.retirement.netTradRet, \
-        self.vars.benefits.retirement.netRothRet] = self.netIncCalc()
+        self.vars.benefits.retirement.netTradCont, \
+        self.vars.benefits.retirement.netRothCont] = self.netIncCalc()
 
         return self.vars
     
@@ -503,8 +503,8 @@ class Taxes:
         
         netIncome = np.zeros(self.years)
         netCash = np.zeros(self.years)
-        netTradRet = np.zeros(self.years)
-        netRothRet = np.zeros(self.years)
+        netTradCont = np.zeros(self.years)
+        netRothCont = np.zeros(self.years)
         
         for i in range(self.iters):
             for j in range(self.years):
@@ -513,11 +513,11 @@ class Taxes:
                 totalWithheld[j] += ret.roth.contribution[i,j] + healthBen[i,j]
                 
                 netIncome[j] += self.income[i][j]
-                netTradRet[j] += ret.traditional.contribution[i,j] + ret.match.contribution[i,j]
-                netRothRet[j] += ret.roth.contribution[i,j]
+                netTradCont[j] += ret.traditional.contribution[i,j] + ret.match.contribution[i,j]
+                netRothCont[j] += ret.roth.contribution[i,j]
         
         for j in range(self.years):
             netIncome[j] -= totalTaxes[j]
             netCash[j] = netIncome[j] - totalDeducted[j] - totalWithheld[j]
 
-        return totalTaxes, totalDeducted, totalWithheld, netIncome, netCash, netTradRet, netRothRet
+        return totalTaxes, totalDeducted, totalWithheld, netIncome, netCash, netTradCont, netRothCont

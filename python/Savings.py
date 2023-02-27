@@ -182,11 +182,11 @@ public class Savings {
                 
                 switch (accountName[i].toUpperCase()) {
                     case "ROTH 401K" -> { // ROTH 401k
-                        savings[i][j] += ret.netRothRet[j];
+                        savings[i][j] += ret.netRothCont[j];
                         savings[i][j] -= rmdDist;
                     }
                     case "TRADITIONAL 401K" -> { // TRAD 401k                        
-                        savings[i][j] += ret.netTradRet[j];
+                        savings[i][j] += ret.netTradCont[j];
                         savings[i][j] -= rmdDist;
                     }
                 }

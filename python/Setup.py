@@ -47,12 +47,12 @@ class Setup:
         self.vars.salary.grossIncome] = self.salaryCalc()
                 
         # Social Security
-        # self.vars.benefits.socialSecurity.ssIns = self.socialSecurityCalc()
+        self.vars.benefits.socialSecurity.ssIns = self.socialSecurityCalc()
 
         # Retirement
-        self.vars.taxes.totalTradRet = np.random.random((self.numInd,self.years))*1e6
-        self.vars.taxes.totalRothRet = np.random.random((self.numInd,self.years))*1e6
-        test = self.retirementCalc()
+        # self.vars.taxes.totalTradRet = np.random.random((self.numInd,self.years))*1e6
+        # self.vars.taxes.totalRothRet = np.random.random((self.numInd,self.years))*1e6
+        # test = self.retirementCalc()
         
         return self.vars
     
@@ -99,19 +99,30 @@ class Setup:
         return ages,childAges
     
     def socialSecurityCalc(self):
-        socialSecurity = TaxDict.Filing
         ss = self.vars.benefits.socialSecurity
         
+        ssWages = np.zeros((self.numInd,self.years+len(self.prevSal[0])))
+        primIns = np.zeros(self.numInd)
+        aime = np.zeros(self.numInd)
+
         ssIns = np.zeros((self.numInd,self.years))
 
         colYrs = np.zeros(self.numInd)
         for i in range(self.numInd):
             colYrs[i] = ss.collectionAge[i] - self.baseAges[i]
        
-        ssWages = np.zeros((self.numInd,self.years+len(self.prevSal[0])))
-        primIns = np.zeros(self.numInd)
-        aime = np.zeros(self.numInd)
-        
+        wageGrowth = [random.normalvariate(ss.wageInd,ss.wageDev) for _ in range(self.years)]
+        wageIndex = np.zeros((self.numInd,self.years))
+        for i in range(self.numInd):
+            yr = int(colYrs[i])
+            wageIndex[i,yr] = ss.wageIndex
+
+            for j in range(yr-1,-1,-1):
+                wageIndex[i,j] = wageIndex[i,j+1] / (1+wageGrowth[j])
+
+            for j in range(yr+1,self.years):
+                wageIndex[i,j] = wageIndex[i,j-1] * (1+wageGrowth[j])
+
         match self.filingType:
             case "JOINT":       socialSecurity = self.taxes.federal.fica.ss.joint
             case "SEPARATE":    socialSecurity = self.taxes.federal.fica.ss.separate
@@ -123,7 +134,7 @@ class Setup:
             prevYrs = len(self.prevSal[i])
             for j in range(prevYrs):
                 yrInd = colYrs[i] - j
-                growthFactor = math.exp(ss.wageInd * yrInd)
+                growthFactor = random.normalvariate(ss.wageInd)
                 
                 ssWages[i,j] = self.prevSal[i][j]
                 ssWages[i,j] *= growthFactor
@@ -166,19 +177,19 @@ class Setup:
             # FULL RETIREMENT AGE ADJUSTMENTS
             earlyClaim = 0
             lateClaim = 0
-            if ss.collectionAge[i] < ss.fra:
-                earlyClaim = (ss.fra - ss.collectionAge[i]) * 12
+            if ss.collectionAge[i] < ss.fullRetAge:
+                earlyClaim = (ss.fullRetAge - ss.collectionAge[i]) * 12
             else:
-                lateClaim = (ss.collectionAge[i] - ss.fra) * 12
+                lateClaim = (ss.collectionAge[i] - ss.fullRetAge) * 12
                 if (lateClaim > 36):
                     lateClaim = 36
                
             if (earlyClaim > 36):
-                primIns[i] -= ((36 * ss.fraEarly[0]) * primIns[i]) + (((earlyClaim - 36) * ss.fraEarly[1]) * primIns[i])
+                primIns[i] -= ((36 * ss.earlyRetAge[0]) * primIns[i]) + (((earlyClaim - 36) * ss.earlyRetAge[1]) * primIns[i])
             else:
-                primIns[i] -= (earlyClaim * ss.fraEarly[0]) * primIns[i]
+                primIns[i] -= (earlyClaim * ss.earlyRetAge[0]) * primIns[i]
            
-            primIns[i] += (lateClaim * ss.fraLate) * primIns[i]
+            primIns[i] += (lateClaim * ss.lateRetAge) * primIns[i]
             
             # COLA ADJUSTMENTS
             k = 1
@@ -193,7 +204,7 @@ class Setup:
 
     def retirementCalc(self):
         def distributionYrs(age):
-            return -7e-6*age**4 + 0.0027*age**3 - 0.3736*age**2 + 21.782*age - 414.16
+            return -0.00000684*age**4+0.00266293*age**3-0.37364604*age**2+21.78182*age-414.165
 
         retire = self.vars.benefits.retirement
         ages = self.vars.base.ages
