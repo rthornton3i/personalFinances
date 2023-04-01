@@ -19,9 +19,6 @@ class Main:
         """
 
         vars = Vars()
-        """
-        Will be including inflation of 3.8% on average
-        """
         # totalExpenses = np.zeros((vars.expenses.numExpenses,vars.base.years))
         # totalSavings = np.zeros((vars.allocations.numAccounts,vars.base.years))
         
@@ -34,9 +31,6 @@ class Main:
 
             setup = Setup(vars, taxDict)
             vars = setup.run()
-            """
-            Fix social security forward looking algorithm
-            """
 
             loans = Loans(vars)
             vars = loans.run()

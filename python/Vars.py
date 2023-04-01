@@ -15,15 +15,13 @@ class Vars:
     class Base:
         def __init__(self):
             self.loops = 1
-            self.years = 70
+            self.years = 60
 
             self.baseAges = [28,28]
             self.retAges = [55,55]
             self.ages = []
             
             self.numInd = len(self.baseAges)
-
-            self.inflation = 0.02
     
     class Filing:
         def __init__(self):
@@ -34,14 +32,18 @@ class Vars:
     
     class Salary:
         def __init__(self):
-            self.salBase   = [93000,115200]
-            self.prevSal = [[75000,79750,88940,90000],[83000,87720,95000,107500]]
+            self.salBase   = [96000,119800]
+            self.prevSal = [[88428,80354,94175,93107],[98049,99027,114805,109016]]
 
             self.salGrowth = [0.025,0.035,0.045] #%
-            self.salBonus = [0.065,0.04] #% for each individual
+            self.salBonus = [0.03,0.04,0.065] #% for each individual
             self.promotionChance = [2,0.25] # [minYrsBtw,chanceOtherwise]
-            self.promotionGrowth = [0.06,0.085,0.125]
+            self.promotionGrowth = [0.06,0.08,0.125]
+
+            self.wageInd = 0.043
+            self.wageDev = 0.023
             
+            self.inflation = []
             self.salary = []
             self.income = []
             self.grossIncome = []  
@@ -388,13 +390,11 @@ class Vars:
                 self.earlyRetAge = [5/900,5/1200]
                 self.lateRetAge = 5/900
                 
+                # https://www.ssa.gov/oact/cola/AWI.html
                 self.wageIndex = 60575.07
-                self.wageInd = 0.043
-                self.wageDev = 0.023
-                self.cola = 0.0138
                 
                 self.bendPerc = [0.9,0.32,0.15]
-                self.bendPts = [996,6002]
+                self.bendPts = [1115,6721,1e9]
                 self.bendSlope = [[0.33,25],[1.99,155]]
             
                 self.ssIns = []

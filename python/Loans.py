@@ -18,22 +18,18 @@ class Loans:
         self.loanDwn  = np.zeros(self.years)
 
         # Housing Loans
+        house = self.vars.expenses.housing.house
         for i in range(self.house.numHouses):
             sellPrev = False if i == 0 else True
 
-            [self.vars.expenses.housing.house.houseBal, \
-            self.vars.expenses.housing.house.housePay, \
-            self.vars.expenses.housing.house.housePrn, \
-            self.vars.expenses.housing.house.houseInt, \
-            self.vars.expenses.housing.house.houseWth, \
-            self.vars.expenses.housing.house.houseDwn]  = self.loanCalc(self.house.purYr[i], \
-                                                                        self.house.sellYr[i], \
-                                                                        self.house.term[i], \
-                                                                        self.house.rate[i], \
-                                                                        self.house.prin[i], \
-                                                                        self.house.down[i], \
-                                                                        self.house.app[i], \
-                                                                        sellPrev)
+            [house.houseBal, house.housePay, house.housePrn, house.houseInt, house.houseWth, house.houseDwn]  = self.loanCalc(self.house.purYr[i], \
+                                                                                                                                self.house.sellYr[i], \
+                                                                                                                                self.house.term[i], \
+                                                                                                                                self.house.rate[i], \
+                                                                                                                                self.house.prin[i], \
+                                                                                                                                self.house.down[i], \
+                                                                                                                                self.house.app[i], \
+                                                                                                                                sellPrev)
         
         # Reset Loan Variables
         self.loanBal  = np.zeros(self.years)
@@ -44,19 +40,15 @@ class Loans:
         self.loanDwn  = np.zeros(self.years)
         
         # Car Loans
+        cars = self.vars.expenses.cars
         for i in range(self.car.numCars):        
-            [self.vars.expenses.cars.carBal, \
-            self.vars.expenses.cars.carPay, \
-            self.vars.expenses.cars.carPrn, \
-            self.vars.expenses.cars.carInt, \
-            self.vars.expenses.cars.carWth, \
-            self.vars.expenses.cars.carDwn]  = self.loanCalc(self.car.purYr[i], \
-                                                            self.car.sellYr[i], \
-                                                            self.car.term[i], \
-                                                            self.car.rate[i], \
-                                                            self.car.prin[i], \
-                                                            self.car.down[i], \
-                                                            self.car.app[i])
+            [cars.carBal, cars.carPay, cars.carPrn, cars.carInt, cars.carWth, cars.carDwn]  = self.loanCalc(self.car.purYr[i], \
+                                                                                                            self.car.sellYr[i], \
+                                                                                                            self.car.term[i], \
+                                                                                                            self.car.rate[i], \
+                                                                                                            self.car.prin[i], \
+                                                                                                            self.car.down[i], \
+                                                                                                            self.car.app[i])
         
         return self.vars
     

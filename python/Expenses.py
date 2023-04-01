@@ -11,48 +11,50 @@ class Expenses:
         self.iters = vars.filing.iters
         
         self.income = vars.salary.income
+        self.inflation = vars.salary.inflation
         
         self.childAges = vars.children.childAges
         self.maxChildYr = vars.children.maxChildYr
     
     def run(self):
-        self.vars.expenses.housing.rent.totalRent = self.rentExp()
-        self.vars.expenses.housing.house.totalHouse = self.housingExp()
-        self.vars.expenses.cars.totalCar = self.carExp()
+        exp =  self.vars.expenses
+        exp.housing.rent.totalRent = self.rentExp()
+        exp.housing.house.totalHouse = self.housingExp()
+        exp.cars.totalCar = self.carExp()
         
-        self.vars.expenses.food.totalFood = self.foodExp()
-        self.vars.expenses.entertain.totalEnt = self.entExp()
-        self.vars.expenses.personalCare.totalPers = self.personalExp()
-        self.vars.expenses.healthcare.totalHealth = self.healthExp()
-        self.vars.expenses.pet.totalPet = self.petExp()
+        exp.food.totalFood = self.foodExp()
+        exp.entertain.totalEnt = self.entExp()
+        exp.personalCare.totalPers = self.personalExp()
+        exp.healthcare.totalHealth = self.healthExp()
+        exp.pet.totalPet = self.petExp()
         
-        self.vars.expenses.holiday.totalHol = self.holidayExp()
-        self.vars.expenses.education.totalEd = self.edExp()
-        self.vars.expenses.vacation.totalVac = self.vacExp()
+        exp.holiday.totalHol = self.holidayExp()
+        exp.education.totalEd = self.edExp()
+        exp.vacation.totalVac = self.vacExp()
         
-        self.vars.expenses.charity.totalChar = self.charExp()
-        self.vars.expenses.major.totalMajor = self.majExp()
-        self.vars.expenses.random.totalRand = self.randExp()
+        exp.charity.totalChar = self.charExp()
+        exp.major.totalMajor = self.majExp()
+        exp.random.totalRand = self.randExp()
         
-        # self.vars.expenses.totalExp =  Utility.ArrayMath.sumArrays(self.years, self.vars.expenses.housing.rent.totalRent, self.vars.expenses.housing.house.totalHouse, self.vars.expenses.cars.totalCar,
-        #                                                     self.vars.expenses.food.totalFood, self.vars.expenses.entertain.totalEnt, self.vars.expenses.personalCare.totalPers, self.vars.expenses.healthcare.totalHealth, self.vars.expenses.pet.totalPet, self.vars.expenses.holiday.totalHol, self.vars.expenses.education.totalEd, self.vars.expenses.vacation.totalVac,
-        #                                                     self.vars.expenses.charity.totalChar, self.vars.expenses.major.totalMajor, self.vars.expenses.random.totalRand,
+        # exp.totalExp =  Utility.ArrayMath.sumArrays(self.years, exp.housing.rent.totalRent, exp.housing.house.totalHouse, exp.cars.totalCar,
+        #                                                     exp.food.totalFood, exp.entertain.totalEnt, exp.personalCare.totalPers, exp.healthcare.totalHealth, exp.pet.totalPet, exp.holiday.totalHol, exp.education.totalEd, exp.vacation.totalVac,
+        #                                                     exp.charity.totalChar, exp.major.totalMajor, exp.random.totalRand,
         #                                                     house.houseDwn,cars.carDwn)
         
-        self.vars.expenses.totalExpenses = np.sum((self.vars.expenses.housing.rent.totalRent, \
-                                                    self.vars.expenses.housing.house.totalHouse, \
-                                                    self.vars.expenses.cars.totalCar, \
-                                                    self.vars.expenses.food.totalFood, \
-                                                    self.vars.expenses.entertain.totalEnt, \
-                                                    self.vars.expenses.personalCare.totalPers, \
-                                                    self.vars.expenses.healthcare.totalHealth, \
-                                                    self.vars.expenses.pet.totalPet, \
-                                                    self.vars.expenses.holiday.totalHol, \
-                                                    self.vars.expenses.education.totalEd, \
-                                                    self.vars.expenses.vacation.totalVac, \
-                                                    self.vars.expenses.charity.totalChar, \
-                                                    self.vars.expenses.major.totalMajor, \
-                                                    self.vars.expenses.random.totalRand),0)
+        exp.totalExpenses = np.sum((exp.housing.rent.totalRent, \
+                                                    exp.housing.house.totalHouse, \
+                                                    exp.cars.totalCar, \
+                                                    exp.food.totalFood, \
+                                                    exp.entertain.totalEnt, \
+                                                    exp.personalCare.totalPers, \
+                                                    exp.healthcare.totalHealth, \
+                                                    exp.pet.totalPet, \
+                                                    exp.holiday.totalHol, \
+                                                    exp.education.totalEd, \
+                                                    exp.vacation.totalVac, \
+                                                    exp.charity.totalChar, \
+                                                    exp.major.totalMajor, \
+                                                    exp.random.totalRand),0)
         
         return self.vars
     

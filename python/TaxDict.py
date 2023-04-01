@@ -18,6 +18,7 @@ class TaxDict:
             self.federal.single.bracketMax      = [11000,44725,95375,182100,231250,578125,1e9]
             self.federal.single.bracketPerc     = [0.10,0.12,0.22,0.24,0.32,0.35,0.37]
             
+            # https://www.ssa.gov/oact/cola/cbb.html
             self.fica.ss.joint.maxSal = 160200*2
             self.fica.ss.joint.rate = 0.062
             self.fica.ss.separate.maxSal = 160200*2
