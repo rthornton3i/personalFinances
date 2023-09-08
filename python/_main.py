@@ -6,7 +6,7 @@ from Loans import Loans
 from Expenses import Expenses
 
 from Taxes import Taxes
-# from Savings import Savings
+from Savings import Savings
 
 import numpy as np
 
@@ -25,9 +25,15 @@ class Main:
         for i in range(vars.base.loops):
             vars = Vars()
             taxDict = TaxDict()
+            """
+            Update arrays to object based maps with names
+            """
 
             # Reader reader = new Reader(vars);
             # reader.run();
+            """
+            Change all random's to numpy random
+            """
 
             setup = Setup(vars, taxDict)
             vars = setup.run()
@@ -38,20 +44,20 @@ class Main:
             expenses = Expenses(vars)
             vars = expenses.run()
             """
-            Switch to one abstract expense function
+            Add inflation to expenses
+            Add additional expenses (use Mint)
             """
 
             taxes = Taxes(vars, taxDict)
             vars = taxes.run()
             """
             Add 401k and SS to income in retirement
-            Fix ssTaxCalc
             Add Medicare expenses to health
             Add inflation assumption to deductions
             """
 
-        #     savings = Savings(vars)
-        #     vars = savings.run()
+            savings = Savings(vars)
+            vars = savings.run()
             
         #     totalExpenses = Utility.ArrayMath.sumArrays2D(totalExpenses,vars.expenses.totalExpenses)
         #     totalSavings = Utility.ArrayMath.sumArrays2D(totalSavings,vars.savings.savings)
