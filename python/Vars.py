@@ -9,8 +9,8 @@ class Vars:
         
         self.benefits = self.Benefits()
         self.taxes = self.Taxes()
-        # self.savings = self.Savings()
-        # self.allocations = self.Allocations()
+        self.savings = self.Savings()
+        self.allocations = self.Allocations()
     
     class Base:
         def __init__(self):
@@ -36,23 +36,24 @@ class Vars:
             self.prevSal = [[88428,80354,94175,93107],[98049,99027,114805,109016]]
 
             self.salGrowth = [0.025,0.035,0.045] #%
-            self.salBonus = [0.03,0.04,0.065] #% for each individual
-            self.promotionChance = [2,0.25] # [minYrsBtw,chanceOtherwise]
+            self.salBonus = [0.0,0.04,0.065] #% for each individual
+            self.promotionChance = 0.25
+            self.promotionWaitPeriod = 3
             self.promotionGrowth = [0.06,0.08,0.125]
 
             self.wageInd = 0.043
             self.wageDev = 0.023
             
-            self.inflation = []
             self.salary = []
             self.income = []
             self.grossIncome = []  
+            self.inflation = []
     
     class Children:
         def __init__(self):
             self.childYrs = [1,3]
             self.maxChildYr = 22
-            self.childInflation = 0.3
+            self.childInflation = 0.4
             
             self.childAges = []
     
@@ -84,7 +85,7 @@ class Vars:
         class Cars:
             def __init__(self):
     #                           Rich  , Becca , CO1   , S1    , CO2   , S2    , Ch1   , Ch2   , S3a   , S3b     S4a   , S4b        
-                self.purYr  = [-4    , -4    , 5     , 7     , 13    , 16    , 22    , 24    , 21    , 24    , 29    , 32]     
+                self.purYr  = [-5    , -5    , 5     , 7     , 13    , 16    , 22    , 24    , 21    , 24    , 29    , 32]     
                 self.sellYr = [5     , 7     , 13    , 16    , 21    , 24    , -1    , -1    , 29    , 32    , -1    , -1]     
                 self.term   = [5     , 5     , 5     , 5     , 5     , 5     , 5     , 5     , 5     , 5     , 5     , 5]
                 self.prin   = [23500 , 19500 , 25000 , 25000 , 30000 , 30000 , 22500 , 22500 , 35000 , 35000 , 40000 , 40000]  
@@ -96,19 +97,11 @@ class Vars:
                 self.preWth = 0
                 
                 # Total cost per month
-                self.insurance = 100+110
-                # Percent of worth (payment**)
-                self.repairs = 0.025 #[100,400,2500]
+                self.insurance = 110+120
+                self.repairs = [25,75,400]
                 
-                # Additional cost relative to pre-child expense
-                self.insRepChildFactor = 0.35
-
-                # Total cost per month
                 self.fuel   = 400
                 self.ezpass = 300
-                
-                # Additional cost relative to pre-child expense
-                self.fuelEzChildFactor = 0.25
 
                 self.carBal = []
                 self.carPay = []
@@ -128,12 +121,11 @@ class Vars:
 
             class Rent:
                 def __init__(self):
-                    self.rentYr = []
+                    self.rentYr = [0,1]
                     
                     # Total cost per month
                     self.baseRent = 2100
                     self.rentFees = 75 + 50 + 25 # Parking, Pet, Trash
-                    self.rentInc = 0.05
                     
                     self.repairs = 50
                     self.insurance = 20
@@ -164,7 +156,7 @@ class Vars:
                     
                     # Total cost per month
                     self.electricity = 3.5*30
-                    self.gas = 3.2*30          
+                    self.gas = 4.1*30          
                     self.water = 50
 
                     self.houseBal = []
@@ -496,24 +488,50 @@ class Vars:
     
     class Savings:
         def __init__(self):
-            self.allocations
-            self.earnings
-            self.contributions
-            self.savings
+            self.allocations = []
+            self.earnings = []
+            self.contributions = []
+            self.savings = []
     
     class Allocations:
         def __init__(self):
-            self.accountName = ["HIGH DIVIDEND",
-                                "LOW VOLATILITY",
-                                "VALUE & GROWTH",
-                                "SECTOR & INDEX",
-                                "SWING & DAY",
-                                "ROTH 401K",
-                                "TRADITIONAL 401K",
-                                "COLLEGE 529",
-                                "LONG-TERM SAVINGS",
-                                "SHORT-TERM SAVINGS",
-                                "SPENDING"]
+            self.highDividend = self.Account()
+            self.lowVolatility = self.Account()
+            self.valueGrowth = self.Account()
+            self.indexFund = self.Account()
+            self.leverageFund = self.Account()
+
+            self.roth401k = self.Account()
+            self.trad401k = self.Account()
+
+            self.college529 = self.Account()
+
+            self.longTermSavings = self.Account()
+            self.shortTermSavings = self.Account()
+            self.spending = self.Account()
+
+            """HIGH DIVIDEND"""
+            # highDividend
+
+            """LOW VOLATILITY"""
+
+            """VALUE & GROWTH"""
+
+            """INDEX FUND"""
+
+            """LEVERAGE FUND"""
+
+            """ROTH 401K"""
+
+            """TRADITIONAL 401K"""
+
+            """COLLEGE 529"""
+
+            """LONG TERM SAVINGS"""
+
+            """SHORT TERM SAVINGS"""
+
+            """SPENDING"""
         
             self.accountType = ["INVESTING",
                                 "INVESTING",
@@ -590,3 +608,17 @@ class Vars:
                                 [1,0,2e6,25]]
         
             self.numAccounts = len(self.allocations)
+        
+        class Account:
+            def __init__(self):
+                self.accountName = []
+                self.accountType = []
+                self.capGainsType = []
+                self.baseSavings = []
+                self.allocations = []
+                self.earnings = []
+
+# al = Vars.Allocations()
+# for att, _ in al.__dict__.items():
+#     print(att)
+# print('here')

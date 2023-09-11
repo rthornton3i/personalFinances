@@ -14,7 +14,7 @@ class Taxes:
 
         self.income = vars.salary.income
         self.salary = vars.salary.salary
-        self.inflation = vars.base.inflation
+        self.inflation = vars.salary.inflation
         self.childInflation = vars.children.childInflation
         
         self.ssIns = vars.benefits.socialSecurity.ssIns
@@ -37,13 +37,13 @@ class Taxes:
         
         self.vars.benefits.retirement.traditional.contribution = self.retContCalc(self.vars.benefits.retirement.traditional)
         self.vars.benefits.retirement.roth.contribution = self.retContCalc(self.vars.benefits.retirement.roth)
-        self.vars.benefits.retirement.traditional.contribution += self.matchContCalc(self.vars.benefits.retirement.match)
+        self.vars.benefits.retirement.match.contribution = self.matchContCalc(self.vars.benefits.retirement.match)
         
         # self.vars.benefits.retirement.traditional.withdrawal = self.retirementWithdrawals()
         # self.vars.benefits.retirement.roth.withdrawal = self.retirementWithdrawals()
 
 #      Social Security
-        # self.vars.benefits.socialSecurity.ssTax = self.ssTaxCalc()
+        self.vars.benefits.socialSecurity.ssTax = self.ssTaxCalc()
 
 #      Deduction/Exemptions
         [self.vars.taxes.federal.deductions.itemized.itemDedFed, \
@@ -99,28 +99,37 @@ class Taxes:
         visionPrem  = np.zeros((self.iters,self.years))
         dentalPrem  = np.zeros((self.iters,self.years))
         
+        init = True
         for i in range(self.iters):
+            retire = self.retAges[i] - self.baseAges[i]
+            hsa[i,:retire] = health.hsa
+            fsa[i,:retire] = health.fsa
+            hra[i,:retire] = health.hra
+            
+            medicalPrem[i,:retire] = health.medicalPrem
+            visionPrem[i,:retire]  = health.visionPrem
+            dentalPrem[i,:retire]  = health.dentalPrem
+
             for j in range(self.years):
-                if j < self.retAges[i] - self.baseAges[i]:
-                    hsa[i,j] = health.hsa * (1 + self.inflation) ** j
-                    fsa[i,j] = health.fsa * (1 + self.inflation) ** j
-                    hra[i,j] = health.hra * (1 + self.inflation) ** j
-                    
-                    medicalPrem[i,j] = health.medicalPrem * (1 + self.inflation) ** j
-                    visionPrem[i,j]  = health.visionPrem * (1 + self.inflation) ** j
-                    dentalPrem[i,j]  = health.dentalPrem * (1 + self.inflation) ** j
+                hsa[i,j] *= 1 + self.inflation[j]
+                fsa[i,j] *= 1 + self.inflation[j]
+                hra[i,j] *= 1 + self.inflation[j]
 
-                    for k in range(len(self.childAges)):
-                        if self.childAges[k,j] > 0 and self.childAges[k,j] < self.maxChildYr:
-                            hsa[i,j] = hsa[i,j] * (1 + self.childInflation)
-                            fsa[i,j] = fsa[i,j] * (1 + self.childInflation)
-                            hra[i,j] = hra[i,j] * (1 + self.childInflation)
+                medicalPrem[i,j] *= 1 + self.inflation[j]
+                visionPrem[i,j] *= 1 + self.inflation[j]
+                dentalPrem[i,j] *= 1 + self.inflation[j]
 
-                            medicalPrem[i,j] = medicalPrem[i,j] * (1 + self.childInflation)
-                            visionPrem[i,j]  = visionPrem[i,j] * (1 + self.childInflation)
-                            dentalPrem[i,j]  = dentalPrem[i,j] * (1 + self.childInflation)
-                else: # Post-retirement
-                    pass
+                for k in range(len(self.childAges)):
+                    if self.childAges[k,j] > 0 and self.childAges[k,j] < self.maxChildYr:
+                        hsa[i,j] *= (1 + self.childInflation)
+                        fsa[i,j] *= (1 + self.childInflation)
+                        hra[i,j] *= (1 + self.childInflation)
+
+                        medicalPrem[i,j] *= (1 + self.childInflation)
+                        visionPrem[i,j]  *= (1 + self.childInflation)
+                        dentalPrem[i,j]  *= (1 + self.childInflation)
+
+        # Post-retirement
 
         healthDed  = np.sum((hsa,fsa,hra),0)
         healthBen  = np.sum((medicalPrem,visionPrem,dentalPrem),0)
@@ -170,8 +179,9 @@ class Taxes:
         
         return contribution
 
-    def ssTaxCalc(self):      
-        taxableBenefits = np.zeros((self.iters,self.years))
+    def ssTaxCalc(self):  
+        # TODO: NEEDS UPDATE    
+        self.taxableBenefits = np.zeros((self.iters,self.years))
         ssTax = np.zeros((self.iters,self.years))
 
         match self.filingType:
@@ -185,7 +195,7 @@ class Taxes:
                 combinedIncome = self.salary[i,j] + (self.ssIns[i,j] / 2)
                 for k in range(len(socialSecurity.bracketMax)):
                     if combinedIncome < socialSecurity.bracketMax[k]:
-                        taxableBenefits[i,j] = socialSecurity.bracketPerc[k] * self.ssIns[i,j]
+                        self.taxableBenefits[i,j] = socialSecurity.bracketPerc[k] * self.ssIns[i,j]
 
         return ssTax
     

@@ -1,309 +1,254 @@
-package com.personalfinances;
+import numpy as np
+import math
 
-import java.lang.Math;
+class Savings:
 
-public class Savings {
-    // Public Variables
-    static int years;  
-    static int numInd;
+    def __init__(self,vars):
+        self.vars = vars
+        
+        self.years = vars.base.years
+        self.numInd = vars.base.numInd
+        
+        self.netCash = vars.taxes.netCash
+        self.numAccounts = vars.allocations.numAccounts
+        self.accountName = vars.allocations.accountName
     
-    static int[] netCash;
-    static int numAccounts;
-    static String[] accountName;
+    def run(self):
+        self.savings = np.zeros((self.numAccounts,self.years))
+        self.contributions = np.zeros((self.numAccounts,self.years))
+        self.withdrawals = np.zeros((self.numAccounts,self.years))
+        
+        self.allocations = self.allocCalc(self.vars.allocations.allocations)
+        self.earnings = self.earningCalc(self.vars.allocations.earnings,self.vars.allocations.accountType)
+        
+        self.savingsCalc()
+        self.vars.savings.allocations = self.allocations
+        self.vars.savings.earnings = self.earnings
+        self.vars.savings.contributions = self.contributions
+        self.vars.savings.savings = self.savings
+        
+        return self.vars
     
-    static Vars vars;
     
-    // Private Variables
-    private static double[][] allocations;
-    private static double[][] earnings;
-    private static int[][] contributions;
-    private static int[][] savings;
-    private static int[][] withdrawals;
-    
-    public Savings(Vars vars) {
-        this.vars = vars;
+    def allocCalc(self,allocs):
+        allocations = np.zeros((len(allocs),self.years))
         
-        years = vars.base.years;
-        numInd = vars.base.numInd;
+        binWid = int(self.years / (len(allocs[0]) - 1))
         
-        netCash = vars.taxes.netCash;
-        numAccounts = vars.allocations.numAccounts;
-        accountName = vars.allocations.accountName;
-    }
-    
-    public Vars run() {
-        savings = new int[numAccounts][years];
-        contributions = new int[numAccounts][years];
-        withdrawals = new int[numAccounts][years];
+        for i in range(self.numAccounts):
+            for j in range(self.years):
+                if (j == 0):
+                    allocations[i,j] = allocs[i][0] / 10
+                else:
+                    curBin = int(math.floor(j / binWid))
+                    allocations[i,j] = (allocs[i][curBin] + (((j % binWid) / binWid) * (allocs[i][curBin+1] - allocs[i][curBin]))) / 100
         
-        allocations = allocCalc(vars.allocations.allocations);
-        earnings = earningCalc(vars.allocations.earnings,vars.allocations.accountType);
-        
-        savingsCalc();
-        vars.savings.allocations = allocations;
-        vars.savings.earnings = earnings;
-        vars.savings.contributions = contributions;
-        vars.savings.savings = savings;
-        
-        return vars;
-    }
-    
-    public double[][] allocCalc(double[][] allocs) {
-        double[][] allocations = new double[allocs.length][years];
-        
-        int binWid = (int) (years / (allocs[0].length - 1));
-        
-        for (int i = 0; i < numAccounts; i++) {
-            for (int j = 0; j < years; j++) {
-                if (j == 0) {
-                    allocations[i][j] = allocs[i][0] / 100;
-                } else {
-                    int curBin = (int) (Math.floor(j / binWid));
-                    allocations[i][j] = (allocs[i][curBin] + (((double) (j % binWid) / binWid) * (allocs[i][curBin+1] - allocs[i][curBin]))) / 100;
-                }
-            }
-        }
-        
-        double[] totalAllocations = Utility.ArrayMath.sumArray2D(allocations, 1);
-        for (int i = 0; i < numAccounts; i++) {
-            for (int j = 0; j < years; j++) {
-                allocations[i][j] /= totalAllocations[j];
-            }
-        }
-        
-        return allocations;
-    }
-    
-    public double[][] earningCalc(double[][] earns, String[] accType) {
-        double[][] earnings = new double[earns.length][years];
-        
-        for (int i = 0; i < numAccounts; i++) {
-            for (int j = 0; j < years; j++) {
-                if (earns[i].length == 2) {
-                    earnings[i][j] = Utility.Generator.normalRand(earns[i][0],earns[i][1]);
-                } else {
-                    double[] mus    = {earns[i][0],earns[i][2]};
-                    double[] sigmas = {earns[i][1],earns[i][3]};
+        totalAllocations = np.sum(allocations,0)
+        for i in range(self.numAccounts):
+            for j in range(self.years):
+                allocations[i,j] /= totalAllocations[j]
 
-                    double mu    = mus[0] - (((double) j / years) * (mus[0] - mus[1]));
-                    double sigma = sigmas[0] - (((double) j / years) * (sigmas[0] - sigmas[1]));;
+        return allocations
+    
+    
+    def earningCalc(self,earns,accType):
+        earnings = np.zeros((len(earns),self.years))
+        
+        for i in range(self.numAccounts):
+            for j in range(self.years):
+                if len(earns[i]) == 2:
+                    earnings[i,j] = np.random.normal(earns[i][0],earns[i][1])
+                else:
+                    mus    = [earns[i][0],earns[i][2]]
+                    sigmas = [earns[i][1],earns[i][3]]
 
-                    earnings[i][j] = Utility.Generator.normalRand(mu,sigma);
-                }
+                    mu    = mus[0] - ((j / self.years) * (mus[0] - mus[1]))
+                    sigma = sigmas[0] - ((j / self.years) * (sigmas[0] - sigmas[1]))
+
+                    earnings[i,j] = np.random.normal(mu,sigma)
+                
+                if accType[i].upper() == "SAVINGS":
+                    if (earnings[i,j] < 0):
+                        earnings[i,j] = 0
                     
-                if (accType[i].toUpperCase().equals("SAVINGS")) {
-                    if (earnings[i][j] < 0) {
-                        earnings[i][j] = 0;
-                    }
-                }
-                
-                earnings[i][j] /= 100;
-            }
-        }
-        
-        return earnings;
-    }
+                earnings[i,j] /= 100
+            
+        return earnings
     
-    public void savingsCalc() {
-        Vars.Benefits.Retirement ret = vars.benefits.retirement;
-        Vars.Expenses exps = vars.expenses;
-        Vars.Expenses.Housing.House house = vars.expenses.housing.house;
-        Vars.Expenses.Cars cars = vars.expenses.cars;
+    
+    def savingsCalc(self):
+        ret = self.vars.benefits.retirement
+        exps = self.vars.expenses
+        house = self.vars.expenses.housing.house
+        cars = self.vars.expenses.cars
         
-        int[] expenses = new int[numAccounts];
+        expenses = self.numAccounts
                        
-        for (int j = 0; j < years; j++) {
-            // Retirement RMD
-            double rmd = 0;
-            int avgAge = 0;
-            for (int i = 0; i < numInd; i++) {
-                avgAge += vars.base.ages[i][j];
-                if (j >= ret.rmdAge - vars.base.baseAges[i]) {
-                    rmd += (double) vars.salary.salBase[i] / Utility.ArrayMath.sumArray(vars.salary.salBase);
-                }
-            }
-            avgAge /= numInd;
-            
-            // EXPENSES
-            for (int i = 0; i < numAccounts; i++) {
-                switch (accountName[i].toUpperCase()) {
-                    case "COLLEGE 529" -> {
-                        expenses[i] = exps.education.totalEd[j];
-                    }
-                    case "LONG-TERM SAVINGS" -> {
-                        expenses[i] = house.houseDwn[j] + cars.carDwn[j] + exps.major.totalMajor[j];  
-                    }
-                    case "SHORT-TERM SAVINGS" -> {
-                        expenses[i] = exps.vacation.totalVac[j] + exps.charity.totalChar[j] + exps.random.totalRand[j];  
-                    }
-                    case "SPENDING" -> {
-                        expenses[i] = exps.housing.rent.totalRent[j] + exps.housing.house.totalHouse[j] + exps.cars.totalCar[j] + 
-                                      exps.food.totalFood[j] + exps.entertain.totalEnt[j] + exps.personalCare.totalPers[j] +
-                                      exps.healthcare.totalHealth[j] + exps.pet.totalPet[j] + exps.holiday.totalHol[j];  
-                    }
-                }
-            }
-            
-            // CONTRIBUTIONS
-            int totalExpenses = Utility.ArrayMath.sumArray(expenses);
-            int netCont;
-            if (totalExpenses > netCash[j]) {
-                netCont = netCash[j];
-            } else {
-                netCont = totalExpenses;
-            }
-            int remCash = netCash[j] - netCont;
-            
-            // SAVINGS
-            for (int i = 0; i < numAccounts; i++) {                
-                // CONTRIBUTIONS
-                if (j == 0) {
-                    savings[i][j] += vars.allocations.baseSavings[i];
-                } else {
-                    savings[i][j] += savings[i][j-1];
-                }
-                
-                contributions[i][j] += (int) (((double) expenses[i] / totalExpenses) * netCont);
-                contributions[i][j] += (int) (allocations[i][j] * remCash);
-                savings[i][j] += contributions[i][j];
-                
-                // EXPENSES
-                savings[i][j] -= expenses[i];
-                int rmdDist = 0;
-                switch (accountName[i].toUpperCase()) {
-                    case "ROTH 401K", "TRADITIONAL 401K" -> {
-                        if (rmd > 0) {
-                            int accValue = (int) (savings[i][j] * rmd);
-                            double ageFactor = avgAge * Math.pow(ret.rmdFactor[0],2) + avgAge * ret.rmdFactor[1] + ret.rmdFactor[2];
-                            rmdDist = (int) (accValue / ageFactor);
-                        }
-                    }
-                }
-                
-                switch (accountName[i].toUpperCase()) {
-                    case "ROTH 401K" -> { // ROTH 401k
-                        savings[i][j] += ret.netRothCont[j];
-                        savings[i][j] -= rmdDist;
-                    }
-                    case "TRADITIONAL 401K" -> { // TRAD 401k                        
-                        savings[i][j] += ret.netTradCont[j];
-                        savings[i][j] -= rmdDist;
-                    }
-                }
+        for j in range(self.years):
+            # Retirement RMD
+            rmd = 0
+            avgAge = 0
+            for i in range(self.numInd):
+                avgAge += self.vars.base.ages[i,j]
+                if (j >= ret.rmdAge - self.vars.base.baseAges[i]):
+                    rmd += self.vars.salary.salBase[i] / np.sum(self.vars.salary.salBase)
 
-                // EARNINGS
-                if (savings[i][j] > 0) {
-                    savings[i][j] *= 1 + earnings[i][j];
-                }
-            }
+            avgAge /= self.numInd
             
-            // UNDERFLOW
-            for (int[][] under : vars.allocations.underflow) {
-                if (under.length == 3) {
-                    if (j >= under[2][0]) {
-                        Withdrawal withdrawal = underFlow(savings,j,under[0][0],under[1]);
-                        savings = withdrawal.savings;
-                    }
-                } else {
-                    Withdrawal withdrawal = underFlow(savings,j,under[0][0],under[1]);
-                    savings = withdrawal.savings;
-                }
-            } 
+            # EXPENSES
+            for i in range(self.numAccounts):
+                match (self.accountName[i].upper()):
+                    case "COLLEGE 529":
+                        expenses[i] = exps.education.totalEd[j]
+                    
+                    case "LONG-TERM SAVINGS":
+                        expenses[i] = house.houseDwn[j] + cars.carDwn[j] + exps.major.totalMajor[j]  
+                    
+                    case "SHORT-TERM SAVINGS":
+                        expenses[i] = exps.vacation.totalVac[j] + exps.charity.totalChar[j] + exps.random.totalRand[j]  
+                    
+                    case "SPENDING":
+                        expenses[i] = exps.housing.rent.totalRent[j] + exps.housing.house.totalHouse[j] + exps.cars.totalCar[j] + \
+                                      exps.food.totalFood[j] + exps.entertain.totalEnt[j] + exps.personalCare.totalPers[j] + \
+                                      exps.healthcare.totalHealth[j] + exps.pet.totalPet[j] + exps.holiday.totalHol[j]  
             
-            // OVERFLOW
-            for (int[] over : vars.allocations.overflow) {
-                if (over.length == 4) {
-                    if (j >= over[3]) {
-                        Withdrawal withdrawal = overFlow(savings,j,over[0],over[1],over[2]);
-                        savings = withdrawal.savings;
-                    }
-                } else {
-                    Withdrawal withdrawal = overFlow(savings,j,over[0],over[1],over[2]);
-                    savings = withdrawal.savings;
-                }
-            }
+            # CONTRIBUTIONS
+            totalExpenses = np.sum(expenses)
+            if (totalExpenses > self.netCash[j]):
+                netCont = self.netCash[j]
+            else:
+                netCont = totalExpenses
             
-            boolean childMax = false;
-            for (int i = 0; i < vars.children.childAges.length; i++) {
-                if (vars.children.childAges[i][j] > vars.children.maxChildYr) {
-                    childMax = true;
-                }
-            }
-            if (childMax) {
-                Withdrawal withdrawal = overFlow(savings,j,7,8,0); // College to Long-Term (Excess)
-                savings = withdrawal.savings;
-            }
-        }
-    }
-    
-    private static Withdrawal overFlow(int[][] savingsIn, int yr, int indFrom, int indTo, int maxVal) {
-        Withdrawal overFlow = new Withdrawal();
-        
-        int index = indFrom;
-        int amount = 0;
-        String capGains = vars.allocations.capGainsType[indFrom];
-        int[][] savingsOut = savingsIn;
-        
-        if (savingsOut[indFrom][yr] > maxVal) {
-            amount = savingsOut[indFrom][yr] - maxVal;
-            savingsOut[indFrom][yr] = maxVal;
-            savingsOut[indTo][yr] += amount;
-        }
-        
-        overFlow.index = new int[]{index};
-        overFlow.amount = new int[]{amount};
-        overFlow.capGains = new String[]{capGains};
-        overFlow.savings = savingsOut;
-        
-        return overFlow;
-    }
-    
-    private static Withdrawal underFlow(int[][] savingsIn, int yr, int indTo, int[] indFrom) {
-        Withdrawal underFlow = new Withdrawal();
-        
-        int[] index = new int[indFrom.length];
-        int[] amount = new int[indFrom.length];
-        String[] capGains = new String[indFrom.length];
-        int[][] savingsOut = savingsIn;
-        
-        if (savingsOut[indTo][yr] < 0) {
-            int transferVal = -savingsOut[indTo][yr];
-            savingsOut[indTo][yr] = 0;
+            remCash = self.netCash[j] - netCont
             
-            int[] accVal = new int[indFrom.length];
-            for (int i = 0; i < indFrom.length; i++) {
-                accVal[i] = savingsOut[indFrom[i]][yr];
-                if (accVal[i] < 0) {
-                    accVal[i] = 0;
-                }
-            }
-            int totalVal = Utility.ArrayMath.sumArray(accVal);
-            
-            for (int i = 0; i < indFrom.length; i++) {
-                index[i] = indFrom[i];
-                capGains[i] = vars.allocations.capGainsType[i];
-                if (totalVal == 0) {
-                    amount[i] = transferVal / indFrom.length;
-                } else {
-                    amount[i] = (int) (transferVal * ((double) accVal[i] / totalVal));
-                }
-                savingsOut[indFrom[i]][yr] -= amount[i];
-            }
-        }
-        
-        underFlow.index = index;
-        underFlow.amount = amount;
-        underFlow.capGains = capGains;
-        underFlow.savings = savingsOut;
+            # SAVINGS
+            for i in range(self.numAccounts):                
+                # CONTRIBUTIONS
+                if (j == 0):
+                    self.savings[i,j] += self.vars.allocations.baseSavings[i]
+                else:
+                    self.savings[i,j] += self.savings[i][j-1]
+
+                self.contributions[i,j] += ((expenses[i] / totalExpenses) * netCont)
+                self.contributions[i,j] += (self.allocations[i,j] * remCash)
+                self.savings[i,j] += self.contributions[i,j]
                 
-        return underFlow;
-    }
+                # EXPENSES
+                self.savings[i,j] -= expenses[i]
+                rmdDist = 0
+                match (self.accountName[i].upper()):
+                    case "ROTH 401K", "TRADITIONAL 401K":
+                        if (rmd > 0):
+                            accValue = (self.savings[i,j] * rmd)
+                            ageFactor = avgAge * math.pow(ret.rmdFactor[0],2) + avgAge * ret.rmdFactor[1] + ret.rmdFactor[2]
+                            rmdDist = (accValue / ageFactor)
+                        
+                match (self.accountName[i].upper()):
+                    case "ROTH 401K": # ROTH 401k
+                        self.savings[i,j] += ret.netRothCont[j]
+                        self.savings[i,j] -= rmdDist
+                    
+                    case "TRADITIONAL 401K": # TRAD 401k                        
+                        self.savings[i,j] += ret.netTradCont[j]
+                        self.savings[i,j] -= rmdDist
+
+                # EARNINGS
+                if (self.savings[i,j] > 0):
+                    self.savings[i,j] *= 1 + self.earnings[i,j]
+                
+            # UNDERFLOW
+            for under in self.vars.allocations.underflow:
+                if (len(under) == 3):
+                    if (j >= under[2][0]):
+                        self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
+                        self.savings = self.withdrawal.savings
+                    
+                else:
+                    self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
+                    self.savings = self.withdrawal.savings
+                
+            # OVERFLOW
+            for over in self.vars.allocations.overflow:
+                if (len(over) == 4):
+                    if (j >= over[3]):
+                        self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
+                        self.savings = self.withdrawal.savings
+                    
+                else:
+                    self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
+                    self.savings = self.withdrawal.savings
+            
+            childMax = False
+            for i in range(len(self.vars.children.childAges)):
+                if (self.vars.children.childAges[i,j] > self.vars.children.maxChildYr):
+                    childMax = True
+
+            if (childMax):
+                self.withdrawal = self.overFlow(self.savings,j,7,8,0) # College to Long-Term (Excess)
+                self.savings = self.withdrawal.savings 
     
-    public static class Withdrawal {
-        int[] index;
-        int[] amount;
-        String[] capGains;
+    def overFlow(self,savingsIn, yr, indFrom, indTo, maxVal):
+        overFlow = Withdrawal()
         
-        int[][] savings;
-    }
-}
+        index = indFrom
+        amount = 0
+        capGains = self.vars.allocations.capGainsType[indFrom]
+        savingsOut = savingsIn
+        
+        if (savingsOut[indFrom][yr] > maxVal):
+            amount = savingsOut[indFrom][yr] - maxVal
+            savingsOut[indFrom][yr] = maxVal
+            savingsOut[indTo][yr] += amount
+
+        overFlow.index = index
+        overFlow.amount = amount
+        overFlow.capGains = capGains
+        overFlow.savings = savingsOut
+        
+        return overFlow
+    
+    
+    def underFlow(self,savingsIn, yr, indTo, indFrom):
+        underFlow = Withdrawal()
+        
+        index = len(indFrom)
+        amount = len(indFrom)
+        capGains = len(indFrom)
+        savingsOut = savingsIn
+        
+        if (savingsOut[indTo][yr] < 0):
+            transferVal = -savingsOut[indTo][yr]
+            savingsOut[indTo][yr] = 0
+            
+            accVal = len(indFrom)
+            for i in range(len(indFrom)):
+                accVal[i] = savingsOut[indFrom[i]][yr]
+                if (accVal[i] < 0):
+                    accVal[i] = 0
+            
+            totalVal = np.sum(accVal)
+            
+            for i in range(len(indFrom)):
+                index[i] = indFrom[i]
+                capGains[i] = self.vars.allocations.capGainsType[i]
+                if (totalVal == 0):
+                    amount[i] = transferVal / len(indFrom)
+                else:
+                    amount[i] = (transferVal * (accVal[i] / totalVal))
+                
+                savingsOut[indFrom[i]][yr] -= amount[i]
+
+        underFlow.index = index
+        underFlow.amount = amount
+        underFlow.capGains = capGains
+        underFlow.savings = savingsOut
+                
+        return underFlow
+    
+class Withdrawal:
+    def __init__(self):
+        self.index = []
+        self.amount = []
+        self.capGains = []
+        
+        self.savings = []

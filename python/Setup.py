@@ -4,8 +4,6 @@ from TaxDict import TaxDict
 from Utility import Utility
 
 import numpy as np
-import math
-import random
 
 class Setup:
     
@@ -26,15 +24,21 @@ class Setup:
         self.vars.filing.iters = iters
 
         # Ages
-        [self.vars.base.ages, \
-        self.vars.children.childAges] = self.ageCalc()
+        self.ageCalc()
+        self.vars.base.ages = self.ages
+        self.vars.children.childAges = self.childAges
         
         # Salary
-        sal = self.vars.salary
-        [sal.salary, sal.income, sal.grossIncome, sal.inflation] = self.salaryCalc()
+        self.salaryCalc()
+        sal = self.vars.salary 
+        sal.salary = self.salary
+        sal.income = self.income
+        sal.grossIncome = self.grossIncome
+        sal.inflation = self.inflation
                 
         # Social Security
-        self.vars.benefits.socialSecurity.ssIns = self.socialSecurityCalc()
+        self.socialSecurityCalc()
+        self.vars.benefits.socialSecurity.ssIns = self.ssIns
 
         # Retirement
         # self.vars.taxes.totalTradRet = np.random.random((self.numInd,self.years))*1e6
@@ -47,51 +51,53 @@ class Setup:
         base = self.vars.base
         sal = self.vars.salary
 
-        salary = np.zeros((self.numInd,self.years))
+        self.salary = np.zeros((self.numInd,self.years))
 
         for i in range(self.numInd):
-            salary[i,0] = sal.salBase[i]
+            """ASSIGN A BASE SALARY"""
+            self.salary[i,0] = sal.salBase[i]
             promotion = np.full(self.years,False)
             
+            """ACCOUNT FOR PROMOTION BASED ON CHANCE AND WAIT PERIOD"""
             for j in range(1,self.years):
                 if j < base.retAges[i] - base.baseAges[i]:
-                    if j+1 < sal.promotionChance[0]:
-                        salary[i,j] = salary[i,j-1] * (1 + random.triangular(sal.salGrowth[0],sal.salGrowth[2],sal.salGrowth[1]))
+                    noPrevPromotion = j+1 > sal.promotionWaitPeriod and not np.any(promotion[j-(sal.promotionWaitPeriod-1):j+1])
+                    receivePromotion = np.random.random() < sal.promotionChance
+
+                    if noPrevPromotion and receivePromotion:
+                        self.salary[i,j] = self.salary[i,j-1] * (1 + np.random.triangular(sal.promotionGrowth[0],sal.promotionGrowth[1],sal.promotionGrowth[2]))
+                        promotion[j] = True
                     else:
-                        if not np.all(promotion[j-(sal.promotionChance[0]-1):j+1]) and random.random() < sal.promotionChance[1]:
-                            salary[i,j] = salary[i,j-1] * (1 + random.triangular(sal.promotionGrowth[0],sal.promotionGrowth[2],sal.promotionGrowth[1]))
-                            promotion[j] = True
-                        else:
-                            salary[i,j] = salary[i,j-1] * (1 + random.triangular(sal.salGrowth[0],sal.salGrowth[2],sal.salGrowth[1]))
+                        self.salary[i,j] = self.salary[i,j-1] * (1 + np.random.triangular(sal.salGrowth[0],sal.salGrowth[1],sal.salGrowth[2]))
 
-            salary[i] *= 1 + random.triangular(sal.salBonus[0],sal.salBonus[2],sal.salBonus[1])
+            """ACCOUNT FOR BONUS"""
+            self.salary[i] *= 1 + np.random.triangular(sal.salBonus[0],sal.salBonus[1],sal.salBonus[2])
         
+        """CALCULATE INCOME BASED ON FILING"""
         match self.filingType:
-            case "JOINT":   income = [np.sum(salary,0)]
-            case _:         income = salary
+            case "JOINT":   self.income = [np.sum(self.salary,0)]
+            case _:         self.income = self.salary
             
-        grossIncome = np.sum(salary,0)
+        self.grossIncome = np.sum(self.salary,0)
 
-        inflation = [random.normalvariate(sal.wageInd,sal.wageDev) for _ in range(self.years)]
-
-        return salary,income,grossIncome,inflation
+        """CALCULATE INFLATION"""
+        self.inflation = [np.random.normal(sal.wageInd,sal.wageDev) for _ in range(self.years)]
+        self.inflation[0] = 0
 
     def ageCalc(self):
         base = self.vars.base
         child = self.vars.children
 
-        ages = np.zeros((self.numInd,self.years))
-        childAges = np.zeros((len(child.childYrs),self.years))
+        self.ages = np.zeros((self.numInd,self.years))
+        self.childAges = np.zeros((len(child.childYrs),self.years))
 
         for i in range(self.years):
             for j in range(self.numInd):
-                ages[j,i] = base.baseAges[j] + i
+                self.ages[j,i] = base.baseAges[j] + i
                 
             for j in range(len(child.childYrs)):
                 if i >= child.childYrs[j]:
-                    childAges[j,i] = i - child.childYrs[j]
-        
-        return ages,childAges
+                    self.childAges[j,i] = i - child.childYrs[j]
     
     def socialSecurityCalc(self):
         base = self.vars.base
@@ -99,9 +105,9 @@ class Setup:
         sal = self.vars.salary
         socialSecurity = self.taxes.federal.fica.ss.single # Use Single value
         
-        ssIns = np.zeros((self.numInd,self.years))
+        self.ssIns = np.zeros((self.numInd,self.years))
 
-        # Get index of collection year and year at 60
+        """GET INDEX OF COLLECTION YEAR AND AT 60"""
         prevYrs = max([len(prevSal) for prevSal in sal.prevSal])
 
         colYrs = np.zeros(self.numInd)
@@ -112,8 +118,8 @@ class Setup:
             yrAt60[i] = 60 - base.baseAges[i] + prevYrs
             yrAt62[i] = 62 - base.baseAges[i] + prevYrs
        
-        # Get wage index based on forward and backward inflation
-        wageGrowth = [random.normalvariate(sal.wageInd,sal.wageDev) for _ in range(self.years+prevYrs)]
+        """GET WAGE INDEX BASED ON FWD AND BKWD INFLATION"""
+        wageGrowth = [np.random.normal(sal.wageInd,sal.wageDev) for _ in range(self.years+prevYrs)]
         wageIndex = np.zeros((self.numInd,self.years+prevYrs))
         wageAt60 = np.zeros(self.numInd)
 
@@ -134,7 +140,7 @@ class Setup:
             wageAt60[i] = wageIndex[i,yrAt60[i]]
             ssMaxAt60[i] = ssMaxSal[i,yrAt60[i]]
 
-        # Adjust 
+        """ADJUST""" 
         bendPts = np.zeros((self.years+prevYrs,len(ss.bendPts)))
         bendPts[prevYrs,:] = ss.bendPts
         for j in range(prevYrs-1,-1,-1): # previous years
@@ -147,7 +153,7 @@ class Setup:
         for i in range(self.numInd):
             bendPtsAt62[i,:] = bendPts[yrAt62[i],:]
 
-        # Get AWI based on year turned 60
+        """GET AWI BASED ON YEAR TURNED 60"""
         awi = np.zeros(np.shape(wageIndex))
         for i in range(self.numInd):
             for j in range(yrAt60[i]-1,-1,-1):
@@ -156,7 +162,7 @@ class Setup:
             for j in range(yrAt60[i],self.years+prevYrs):
                 awi[i,j] = 1
         
-        # Get adjusted wages
+        """GET ADJUSTED WAGES"""
         adjustedWages = np.zeros(np.shape(wageIndex))
         ssWages = np.zeros((self.numInd,35))
         aime = np.zeros(self.numInd)
@@ -171,7 +177,7 @@ class Setup:
             ssWages[i,:] = np.sort(adjustedWages[i])[-35:]
             aime[i] = np.average(ssWages[i]) / 12
             
-            # BEND POINTS
+            """BEND POINTS"""
             maxBracket = 0
             for k in range(len(ss.bendPerc)):
                 minBracket = maxBracket
@@ -183,16 +189,16 @@ class Setup:
                 elif aime[i] > minBracket:
                     primIns[i] += (aime[i] - minBracket) * rateBracket
             
-            # COLA Adjustments
+            """COLA Adjustments"""
             init = True
             for j in range(colYrs[i].astype(int),self.years):
                 if init:
-                    ssIns[i,j] = primIns[i]
+                    self.ssIns[i,j] = primIns[i]
                     init = False
                 else:
-                    ssIns[i,j] = ssIns[i,j-1] * (1+wageGrowth[j+prevYrs])
+                    self.ssIns[i,j] = self.ssIns[i,j-1] * (1+wageGrowth[j+prevYrs])
 
-            # FULL RETIREMENT AGE ADJUSTMENTS
+            """FULL RETIREMENT AGE ADJUSTMENTS"""
             earlyClaim = 0
             lateClaim = 0
             if ss.collectionAge[i] < ss.fullRetAge:
@@ -204,13 +210,11 @@ class Setup:
             
             for j in range(colYrs[i].astype(int),self.years):
                 if (earlyClaim > 36):
-                    ssIns[i,j] -= ((36 * ss.earlyRetAge[0]) * ssIns[i,j]) + (((earlyClaim - 36) * ss.earlyRetAge[1]) * ssIns[i,j])
+                    self.ssIns[i,j] -= ((36 * ss.earlyRetAge[0]) * self.ssIns[i,j]) + (((earlyClaim - 36) * ss.earlyRetAge[1]) * self.ssIns[i,j])
                 else:
-                    ssIns[i,j] -= (earlyClaim * ss.earlyRetAge[0]) * ssIns[i,j]
+                    self.ssIns[i,j] -= (earlyClaim * ss.earlyRetAge[0]) * self.ssIns[i,j]
             
-                ssIns[i,j] += (lateClaim * ss.lateRetAge) * ssIns[i,j]
-
-        return ssIns
+                self.ssIns[i,j] += (lateClaim * ss.lateRetAge) * self.ssIns[i,j]
 
     def retirementCalc(self):
         def distributionYrs(age):
