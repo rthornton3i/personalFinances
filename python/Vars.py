@@ -53,9 +53,10 @@ class Vars:
         def __init__(self):
             self.childYrs = [1,3]
             self.maxChildYr = 22
-            self.childInflation = 0.4
+            self.childInflationVal = 0.4
             
             self.childAges = []
+            self.childInflation = []
     
     
     class Expenses:
@@ -179,11 +180,6 @@ class Vars:
                 self.fastFood = 30
                 self.workFood = 30
                 
-                # Additional cost relative to pre-child expense
-                self.childFactor = 0.4
-                # Overall growth after 'years'
-                self.growthFactor = 0.2
-                
                 self.totalFood = []
         
         class Entertain:
@@ -195,11 +191,6 @@ class Vars:
                 self.subs = (130/12) + 65 + (60/12) + (130/12) + (220/12) + (625/12) + (75/12) + (22/12) + (120/12)
                             #Amazon, Youtube, Nest, Costco, Beach, Chase, Microsoft, Nintendo, Dropbox
                 
-                # Additional cost relative to pre-child expense
-                self.childFactor = 0.25
-                # Overall growth after 'years'
-                self.growthFactor = 0.5
-                
                 self.totalEnt = []
             
         class PersonalCare:
@@ -207,11 +198,6 @@ class Vars:
                 # Total cost per month
                 self.clothingShoes = 75
                 self.hairMakeup = 60
-                
-                # Additional cost relative to pre-child expense
-                self.childFactor = 0.25
-                # Overall growth after 'years'
-                self.growthFactor = 0.25
                 
                 self.totalPers = []
         
@@ -229,11 +215,6 @@ class Vars:
                 
                 self.visits = [0,1,3]
                 self.costs = [40,200,1500]
-                
-                # Additional cost relative to pre-child expense
-                self.childFactor = 0.25
-                # Overall growth after 'years'
-                self.growthFactor = 0.25
                 
                 self.totalHealth = []
             
