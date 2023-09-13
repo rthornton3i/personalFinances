@@ -37,11 +37,6 @@ class Expenses:
         exp.major.totalMajor = self.majExp()
         exp.random.totalRand = self.randExp()
         
-        # exp.totalExp =  Utility.ArrayMath.sumArrays(self.years, exp.housing.rent.totalRent, exp.housing.house.totalHouse, exp.cars.totalCar,
-        #                                                     exp.food.totalFood, exp.entertain.totalEnt, exp.personalCare.totalPers, exp.healthcare.totalHealth, exp.pet.totalPet, exp.holiday.totalHol, exp.education.totalEd, exp.vacation.totalVac,
-        #                                                     exp.charity.totalChar, exp.major.totalMajor, exp.random.totalRand,
-        #                                                     house.houseDwn,cars.carDwn)
-        
         exp.totalExpenses = np.sum((exp.housing.rent.totalRent, \
                                     exp.housing.house.totalHouse, \
                                     exp.cars.totalCar, \
@@ -69,7 +64,7 @@ class Expenses:
             rentExp += (rent.repairs + rent.insurance + rent.electricity + rent.gas + rent.water) * 12
             
             for i in range(rent.rentYr[0],rent.rentYr[1]+1):
-                rentExp *= (1+self.inflation[i])
+                rentExp *= 1 + self.inflation[i]
                 totalRent[i] = rentExp
         
         return totalRent
@@ -87,7 +82,7 @@ class Expenses:
 
         homeUtil = (house.electricity + house.gas + house.water) * 12
         for i in range(firstYear,self.years):
-            homeUtil *= (1+self.inflation[i])
+            homeUtil *= 1 + self.inflation[i]
             totalHouse[i] += homeUtil
         
         totalHouse += house.houseDwn
@@ -99,16 +94,10 @@ class Expenses:
         
         totalCar = np.zeros(self.years)
         
-        carExps = (cars.insurance + cars.ezpass + cars.fuel) * 12 + random.triangular(cars.repairs[0],cars.repairs[2],cars.repairs[1]) * 12        
+        carExps = (cars.insurance + cars.ezpass + cars.fuel) * 12 + np.random.triangular(cars.repairs[0],cars.repairs[1],cars.repairs[2]) * 12        
         for i in range(self.years):
-            carExps *= (1+self.inflation[i])
-
-            childInflation = 0            
-            for j in range(len(self.childAges)):
-                if self.childAges[j,i] > 16 and self.childAges[j,i] < self.maxChildYr:
-                    childInflation += self.childInflation
-
-            carExps *= 1 + childInflation
+            carExps *= 1 + self.inflation[i]
+            carExps *= 1 + self.childInflation[i]
 
             totalCar[i] = cars.carPay[i] + carExps
 
@@ -123,14 +112,8 @@ class Expenses:
 
         foodExps = (food.groceries + food.restaurants + food.alcohol + food.fastFood + food.workFood) * 12
         for i in range(self.years):
-            foodExps *= (1+self.inflation[i])
-
-            childInflation = 0            
-            for j in range(len(self.childAges)):
-                if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
-                    childInflation += self.childInflation
-
-            foodExps *= 1 + childInflation
+            foodExps *= 1 + self.inflation[i]
+            foodExps *= 1 + self.childInflation[i]
 
             totalFood[i] = foodExps
             
@@ -141,13 +124,12 @@ class Expenses:
         
         totalEnt = np.zeros(self.years)
         
+        entertainExps = (entertain.wifi + entertain.cell + entertain.tv + entertain.subs) * 12
         for i in range(self.years):
-            totalEnt[i] = (entertain.wifi + entertain.cell + entertain.tv + entertain.subs) * 12
-            totalEnt[i] = totalEnt[i] * (1 + (i / self.years * entertain.growthFactor))
-            
-            for j in range(len(self.childAges)):
-                if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
-                    totalEnt[i] = totalEnt[i] * (1 + entertain.childFactor)
+            entertainExps *= 1 + self.inflation[i]
+            entertainExps *= 1 + self.childInflation[i]
+
+            totalEnt[i] = entertainExps
 
         return totalEnt
     
@@ -156,13 +138,12 @@ class Expenses:
         
         totalPers = np.zeros(self.years)
         
+        persExps = (personalCare.clothingShoes + personalCare.hairMakeup) * 12
         for i in range(self.years):
-            totalPers[i] = (personalCare.clothingShoes + personalCare.hairMakeup) * 12
-            totalPers[i] = totalPers[i] * (1 + (i / self.years * personalCare.growthFactor))
-            
-            for j in range(len(self.childAges)):
-                if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
-                    totalPers[i] = totalPers[i] * (1 + personalCare.childFactor)
+            persExps *= 1 + self.inflation[i]
+            persExps *= 1 + self.childInflation[i]
+
+            totalPers[i] = persExps
         
         return totalPers
     
@@ -176,12 +157,12 @@ class Expenses:
 
         for j in range(self.years):
             for i in range(self.iters):
-                numVisits = np.round(random.triangular(health.visits[0],health.visits[2],health.visits[1])).astype(int)
+                numVisits = np.round(np.random.triangular(health.visits[0],health.visits[1],health.visits[2])).astype(int)
 
                 deductible = health.deductible[i]
                 maxOOP = health.maxOOP[i]
                 for k in range(numVisits):
-                    cost = random.triangular(health.costs[0],health.costs[2],health.costs[1])
+                    cost = np.random.triangular(health.costs[0],health.costs[1],health.costs[2])
                     
                     while cost > 0:
                         if deductible > 0:
@@ -211,10 +192,7 @@ class Expenses:
                             cost = 0
                 
                 totalHealth[i,j] += health.drugs[i] * 12
-                
-                for k in range(len(self.childAges)):
-                    if self.childAges[k,j] > 0 and self.childAges[k,j] < self.maxChildYr:
-                        totalHealth[i,j] = totalHealth[i,j] * (1 + health.childFactor)
+                totalHealth[i,j] *= 1 + self.childInflation[i]
         
         return np.sum(totalHealth, 0)
     
@@ -223,9 +201,11 @@ class Expenses:
         
         totalPet = np.zeros(self.years)
         
+        petExps = (pet.food + pet.essentials + pet.toys + pet.careTaker + pet.vet + pet.insurance) * 12
         for i in range(self.years):
-            totalPet[i] = (pet.food + pet.essentials + pet.toys + pet.careTaker + pet.vet + pet.insurance) * 12
-            totalPet[i] = totalPet[i] * (1 + (i / self.years * pet.growthFactor))
+            petExps *= 1 + self.inflation[i]
+
+            totalPet[i] = petExps
         
         return totalPet
     
@@ -245,7 +225,9 @@ class Expenses:
             for j in range(len(self.childAges)):
                 if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
                     childGift[i] += holiday.childBday + holiday.childXmas
-                    childGift[i] = childGift[i] * (1 + (i / self.years * holiday.childGrowthFactor))
+            
+            childGift[i] *= 1 + self.childInflation[i]
+
         
         for i in range(self.years):
             totalHol[i] += holiday.persBday * self.numInd + \

@@ -27,6 +27,7 @@ class Setup:
         self.ageCalc()
         self.vars.base.ages = self.ages
         self.vars.children.childAges = self.childAges
+        self.vars.children.childInflation = self.childInflation
         
         # Salary
         self.salaryCalc()
@@ -90,6 +91,7 @@ class Setup:
 
         self.ages = np.zeros((self.numInd,self.years))
         self.childAges = np.zeros((len(child.childYrs),self.years))
+        self.childInflation = np.zeros(self.years)
 
         for i in range(self.years):
             for j in range(self.numInd):
@@ -98,6 +100,10 @@ class Setup:
             for j in range(len(child.childYrs)):
                 if i >= child.childYrs[j]:
                     self.childAges[j,i] = i - child.childYrs[j]
+         
+            for j in range(len(self.childYrs)):
+                if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
+                    self.childInflation[i] += child.childInflationVal
     
     def socialSecurityCalc(self):
         base = self.vars.base
