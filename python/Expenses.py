@@ -98,7 +98,6 @@ class Expenses:
         for i in range(self.years):
             carExps *= 1 + self.inflation[i]
             carExps *= 1 + self.childInflation[i]
-
             totalCar[i] = cars.carPay[i] + carExps
 
         totalCar += cars.carDwn
@@ -114,7 +113,6 @@ class Expenses:
         for i in range(self.years):
             foodExps *= 1 + self.inflation[i]
             foodExps *= 1 + self.childInflation[i]
-
             totalFood[i] = foodExps
             
         return totalFood
@@ -128,7 +126,6 @@ class Expenses:
         for i in range(self.years):
             entertainExps *= 1 + self.inflation[i]
             entertainExps *= 1 + self.childInflation[i]
-
             totalEnt[i] = entertainExps
 
         return totalEnt
@@ -142,7 +139,6 @@ class Expenses:
         for i in range(self.years):
             persExps *= 1 + self.inflation[i]
             persExps *= 1 + self.childInflation[i]
-
             totalPers[i] = persExps
         
         return totalPers
@@ -153,7 +149,6 @@ class Expenses:
         numVisits = np.zeros((self.iters,self.years))
 
         totalHealth =np.zeros((self.iters,self.years))
-        # totalHsa = new int[numInd,self.years]
 
         for j in range(self.years):
             for i in range(self.iters):
@@ -161,7 +156,7 @@ class Expenses:
 
                 deductible = health.deductible[i]
                 maxOOP = health.maxOOP[i]
-                for k in range(numVisits):
+                for _ in range(numVisits):
                     cost = np.random.triangular(health.costs[0],health.costs[1],health.costs[2])
                     
                     while cost > 0:
@@ -192,7 +187,7 @@ class Expenses:
                             cost = 0
                 
                 totalHealth[i,j] += health.drugs[i] * 12
-                totalHealth[i,j] *= 1 + self.childInflation[i]
+                totalHealth[i,j] *= (1 + self.childInflation[i]) / self.iters
         
         return np.sum(totalHealth, 0)
     
@@ -204,7 +199,6 @@ class Expenses:
         petExps = (pet.food + pet.essentials + pet.toys + pet.careTaker + pet.vet + pet.insurance) * 12
         for i in range(self.years):
             petExps *= 1 + self.inflation[i]
-
             totalPet[i] = petExps
         
         return totalPet
@@ -213,28 +207,25 @@ class Expenses:
         holiday = self.vars.expenses.holiday
 
         familyGift = np.zeros(self.years)
-        
-        totalHol = np.zeros(self.years)
-           
-        for i in range(self.years):
-            familyGift[i] = holiday.familyBday + holiday.familyXmas 
-            familyGift[i] = familyGift[i] * (1 + (i / self.years * holiday.familyGrowthFactor))
-        
         childGift = np.zeros(self.years)
+        totalHol = np.zeros(self.years)
+        
+        giftExps = holiday.familyBday + holiday.familyXmas 
         for i in range(self.years):
+            giftExps *= 1 + self.inflation[i]
+            familyGift[i] = giftExps
+        
+        childExps = holiday.childBday + holiday.childXmas
+        for i in range(self.years):
+            childExps *= 1 + self.inflation[i]
             for j in range(len(self.childAges)):
                 if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
-                    childGift[i] += holiday.childBday + holiday.childXmas
-            
-            childGift[i] *= 1 + self.childInflation[i]
-
+                    childGift[i] = childExps
         
+        holidayExps = (holiday.persBday + holiday.persXmas + holiday.persVal + holiday.persAnniv) * self.numInd
         for i in range(self.years):
-            totalHol[i] += holiday.persBday * self.numInd + \
-                           holiday.persXmas * self.numInd + \
-                           holiday.persVal * self.numInd + \
-                           holiday.persAnniv * self.numInd + \
-                           familyGift[i] + childGift[i]
+            holidayExps *= 1 + self.inflation[i]
+            totalHol[i] += holidayExps + familyGift[i] + childGift[i]
         
         return totalHol
     
@@ -243,10 +234,12 @@ class Expenses:
         
         totalEd = np.zeros(self.years)
         
-        for i in range(self.years):            
+        edExps = education.tuition + education.housing + education.dining + education.books
+        for i in range(self.years):
+            edExps *= 1 + self.inflation[i]
             for j in range(len(self.childAges)):
                 if self.childAges[j,i] >= 18 and self.childAges[j,i] < self.maxChildYr:
-                    totalEd[i] += education.tuition + education.housing + education.dining + education.books
+                    totalEd[i] = edExps
         
         return totalEd
     
@@ -255,19 +248,11 @@ class Expenses:
         
         totalVac = np.zeros(self.years)
         
-        for i in range(self.years):
-            numTravelers = self.numInd
-            for j in range(len(self.childAges)):
-                if self.childAges[j,i] >= 5 and self.childAges[j,i] < self.maxChildYr:
-                    numTravelers += 1
-            
-            totalVac[i] += vacation.travel # per person
-            totalVac[i] += (vacation.events + vacation.food) * vacation.numDays # per person per day            
-            totalVac[i] *= numTravelers
-            
-            totalVac[i] += (vacation.hotel + vacation.carRental) * vacation.numDays # per day
-            
-            totalVac[i] = totalVac[i] * (1 + (i / self.years * vacation.growthFactor))
+        vacExp = (vacation.travel + ((vacation.events + vacation.food) * vacation.numDays) + ((vacation.hotel + vacation.carRental) * vacation.numDays)) * self.numInd
+        for i in range(self.years):            
+            vacExp *= 1 + self.inflation[i]
+            vacExp *= 1 + self.childInflation[i]
+            totalVac[i] = vacExp
         
         return totalVac
     
@@ -288,9 +273,10 @@ class Expenses:
         totalMajor = np.zeros(self.years)
         
         for i in range(self.years):
-            for wedEv in major.wedding:
-                if wedEv[0] == i:
-                    totalMajor[i] += wedEv[1]
+            for event in major.majEvent:
+                if len(event) > 0:
+                    if event[0] == i:
+                        totalMajor[i] += event[1]
         
         return totalMajor
     

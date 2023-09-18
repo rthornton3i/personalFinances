@@ -11,7 +11,7 @@ class Savings:
         
         self.netCash = vars.taxes.netCash
         self.numAccounts = vars.allocations.numAccounts
-        self.accountName = vars.allocations.accountName
+        # self.accountName = vars.allocations.accountName
     
     def run(self):
         self.savings = np.zeros((self.numAccounts,self.years))
@@ -26,6 +26,7 @@ class Savings:
         self.vars.savings.earnings = self.earnings
         self.vars.savings.contributions = self.contributions
         self.vars.savings.savings = self.savings
+        self.vars.savings.withdrawals = self.withdrawals
         
         return self.vars
     
@@ -34,6 +35,7 @@ class Savings:
         allocations = np.zeros((len(allocs),self.years))
         
         binWid = int(self.years / (len(allocs[0]) - 1))
+        maxAllocation = 
         
         for i in range(self.numAccounts):
             for j in range(self.years):

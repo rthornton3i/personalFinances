@@ -99,35 +99,42 @@ class Taxes:
         visionPrem  = np.zeros((self.iters,self.years))
         dentalPrem  = np.zeros((self.iters,self.years))
         
-        init = True
         for i in range(self.iters):
             retire = self.retAges[i] - self.baseAges[i]
-            hsa[i,:retire] = health.hsa
-            fsa[i,:retire] = health.fsa
-            hra[i,:retire] = health.hra
+            hsaExp = health.hsa
+            fsaExp = health.fsa
+            hraExp = health.hra
             
-            medicalPrem[i,:retire] = health.medicalPrem
-            visionPrem[i,:retire]  = health.visionPrem
-            dentalPrem[i,:retire]  = health.dentalPrem
+            medicalPremExp = health.medicalPrem
+            visionPremExp  = health.visionPrem
+            dentalPremExp  = health.dentalPrem
 
-            for j in range(self.years):
-                hsa[i,j] *= 1 + self.inflation[j]
-                fsa[i,j] *= 1 + self.inflation[j]
-                hra[i,j] *= 1 + self.inflation[j]
+            for j in range(retire):
+                """INFLATION"""
+                hsaExp *= 1 + self.inflation[j] 
+                fsaExp *= 1 + self.inflation[j] 
+                hraExp *= 1 + self.inflation[j] 
 
-                medicalPrem[i,j] *= 1 + self.inflation[j]
-                visionPrem[i,j] *= 1 + self.inflation[j]
-                dentalPrem[i,j] *= 1 + self.inflation[j]
+                medicalPremExp *= 1 + self.inflation[j] 
+                visionPremExp  *= 1 + self.inflation[j] 
+                dentalPremExp  *= 1 + self.inflation[j] 
 
-                for k in range(len(self.childAges)):
-                    if self.childAges[k,j] > 0 and self.childAges[k,j] < self.maxChildYr:
-                        hsa[i,j] *= (1 + self.childInflation)
-                        fsa[i,j] *= (1 + self.childInflation)
-                        hra[i,j] *= (1 + self.childInflation)
+                """CHILD INFLATION"""
+                hsaExp *= 1 + self.childInflation[j]
+                fsaExp *= 1 + self.childInflation[j]
+                hraExp *= 1 + self.childInflation[j]
 
-                        medicalPrem[i,j] *= (1 + self.childInflation)
-                        visionPrem[i,j]  *= (1 + self.childInflation)
-                        dentalPrem[i,j]  *= (1 + self.childInflation)
+                medicalPremExp *= 1 + self.childInflation[j]
+                visionPremExp  *= 1 + self.childInflation[j]
+                dentalPremExp  *= 1 + self.childInflation[j]
+
+                hsa[i,j] = hsaExp
+                fsa[i,j] = fsaExp
+                hra[i,j] = hraExp
+
+                medicalPrem[i,j] = medicalPremExp
+                visionPrem[i,j]  = visionPremExp
+                dentalPrem[i,j]  = dentalPremExp
 
         # Post-retirement
 

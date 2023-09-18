@@ -101,8 +101,8 @@ class Setup:
                 if i >= child.childYrs[j]:
                     self.childAges[j,i] = i - child.childYrs[j]
          
-            for j in range(len(self.childYrs)):
-                if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
+            for j in range(len(child.childYrs)):
+                if self.childAges[j,i] > 0 and self.childAges[j,i] < child.maxChildYr:
                     self.childInflation[i] += child.childInflationVal
     
     def socialSecurityCalc(self):

@@ -37,6 +37,9 @@ class Main:
 
             setup = Setup(vars, taxDict)
             vars = setup.run()
+            """
+            Get 401k totals for minimum distribution
+            """
 
             loans = Loans(vars)
             vars = loans.run()
@@ -44,7 +47,7 @@ class Main:
             expenses = Expenses(vars)
             vars = expenses.run()
             """
-            Add inflation to expenses
+            HSA values from healthcare expenses
             Add additional expenses (use Mint)
             """
 

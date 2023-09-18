@@ -275,7 +275,6 @@ class Vars:
         class Vacation:
             def __init__(self):
                 self.travel = 400 # Cost per person
-                
                 self.food = 25 + 20 + 40 # Cost per day per person
                 self.events = 50 # Cost per day per person
                 
@@ -284,14 +283,11 @@ class Vars:
                 
                 self.numDays = 5
                 
-                # Overall growth after 'years'
-                self.growthFactor = 1
-                
                 self.totalVac = []
         
         class Major:
             def __init__(self):
-                self.wedding =  [[1,55000]]
+                self.majEvent = [[]] # [yr,cost]
 
                 self.totalMajor = []
         
@@ -469,10 +465,11 @@ class Vars:
     
     class Savings:
         def __init__(self):
-            self.allocations = []
-            self.earnings = []
-            self.contributions = []
             self.savings = []
+            self.contributions = []
+            self.withdrawals = []
+            self.allocations = []
+            self.earnings = []            
     
     class Allocations:
         def __init__(self):
@@ -492,7 +489,11 @@ class Vars:
             self.spending = self.Account()
 
             """HIGH DIVIDEND"""
-            # highDividend
+            self.highDividend.accountType   = 'INVESTING'
+            self.highDividend.capGainsType  = 'LONG'
+            self.highDividend.baseSavings   = 
+            self.highDividend.allocations   = 
+            self.highDividend.earnings      = 
 
             """LOW VOLATILITY"""
 
@@ -513,18 +514,6 @@ class Vars:
             """SHORT TERM SAVINGS"""
 
             """SPENDING"""
-        
-            self.accountType = ["INVESTING",
-                                "INVESTING",
-                                "INVESTING",
-                                "INVESTING",
-                                "INVESTING",
-                                "INVESTING",
-                                "INVESTING",
-                                "INVESTING",
-                                "SAVINGS",
-                                "SAVINGS",
-                                "SAVINGS"]
         
             self.capGainsType = ["LONG",
                                  "LONG",
@@ -593,8 +582,8 @@ class Vars:
         class Account:
             def __init__(self):
                 self.accountName = []
-                self.accountType = []
-                self.capGainsType = []
+                self.accountType = []   # INVESTING, SAVINGS
+                self.capGainsType = []  # LONG, SHORT, NONE
                 self.baseSavings = []
                 self.allocations = []
                 self.earnings = []
