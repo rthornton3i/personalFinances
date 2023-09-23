@@ -1,5 +1,7 @@
 from Utility import Utility
+
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Taxes:
     def __init__(self, vars, taxes):
@@ -28,8 +30,9 @@ class Taxes:
         
     def run(self):          
 #      Benefits
-        [self.vars.benefits.health.healthDed, \
-        self.vars.benefits.health.healthBen] = self.healthCalc()
+        self.healthCalc()
+        self.vars.benefits.health.healthDed = self.healthDed
+        self.vars.benefits.health.healthBen = self.healthBen
         
 #      Retirement
         self.perc401 = np.zeros((self.numInd,self.years))
@@ -43,32 +46,46 @@ class Taxes:
         # self.vars.benefits.retirement.roth.withdrawal = self.retirementWithdrawals()
 
 #      Social Security
-        self.vars.benefits.socialSecurity.ssTax = self.ssTaxCalc()
+        self.ssTaxCalc()
+        self.vars.benefits.socialSecurity.ssTax = self.ssTax
+        # plt.plot(self.ssTax)
 
 #      Deduction/Exemptions
-        [self.vars.taxes.federal.deductions.itemized.itemDedFed, \
-        self.vars.taxes.state.deductions.itemized.itemDedState] = self.itemDedCalc()
+        self.itemDedCalc()
+        self.vars.taxes.federal.deductions.itemized.itemDedFed = self.itemDedFed
+        self.vars.taxes.state.deductions.itemized.itemDedState = self.itemDedState
+        # plt.plot(self.itemDedFed[0])
+        # plt.plot(self.itemDedState[0])
         
-        [self.vars.taxes.federal.deductions.standard.stdDedFed, \
-        self.vars.taxes.state.deductions.standard.stdDedState] = self.stdDedCalc()
-        
-        [self.vars.taxes.federal.exemptions.exemptFed, \
-        self.vars.taxes.state.exemptions.persExempt.persExemptState, \
-        self.vars.taxes.state.exemptions.childExempt.childExemptState] = self.exemptCalc()
-        
+        self.stdDedCalc()
+        self.vars.taxes.federal.deductions.standard.stdDedFed = self.stdDedFed
+        self.vars.taxes.state.deductions.standard.stdDedState = self.stdDedState
+        # plt.plot(self.stdDedFed[0])
+
+        self.exemptCalc()
+        self.vars.taxes.federal.exemptions.exemptFed = self.exemptFed
+        self.vars.taxes.state.exemptions.persExempt.persExemptState = self.persExemptState
+        self.vars.taxes.state.exemptions.childExempt.childExemptState = self.childExemptState
+        # plt.plot(self.persExemptState[0])
+
 #      Gross Earnings
-        [self.vars.taxes.federal.grossIncomeFed, \
-        self.vars.taxes.state.grossIncomeState] = self.grossEarnCalc()
-        
+        self.grossEarnCalc()
+        self.vars.taxes.federal.grossIncomeFed = self.grossIncomeFed
+        self.vars.taxes.state.grossIncomeState = self.grossIncomeState
+        plt.plot(self.grossIncomeFed[0])
+        plt.plot(self.grossIncomeState[0])
+
 #      State Taxes
         self.vars.taxes.state.saltTaxes = self.slTaxCalc()
         
 #      Gross Earnings (Update)
-        [self.vars.taxes.federal.deductions.itemized.itemDedFed, \
-        self.vars.taxes.state.deductions.itemized.itemDedState] = self.itemDedCalc()
-
-        [self.vars.taxes.federal.grossIncomeFed, \
-        self.vars.taxes.state.grossIncomeState] = self.grossEarnCalc()
+        self.itemDedCalc()
+        self.vars.taxes.federal.deductions.itemized.itemDedFed = self.itemDedFed
+        self.vars.taxes.state.deductions.itemized.itemDedState = self.itemDedState
+        
+        self.grossEarnCalc()
+        self.vars.taxes.federal.grossIncomeFed = self.grossIncomeFed
+        self.vars.taxes.state.grossIncomeState = self.grossIncomeState
         
 #      Federal Taxes
         [self.vars.taxes.federal.fedTax, \
@@ -89,8 +106,8 @@ class Taxes:
     def healthCalc(self):   
         health = self.vars.benefits.health
 
-        healthDed = np.zeros((self.iters,self.years))
-        healthBen = np.zeros((self.iters,self.years))        
+        self.healthDed = np.zeros((self.iters,self.years))
+        self.healthBen = np.zeros((self.iters,self.years))        
         
         hsa = np.zeros((self.iters,self.years))
         fsa = np.zeros((self.iters,self.years))
@@ -117,31 +134,20 @@ class Taxes:
 
                 medicalPremExp *= 1 + self.inflation[j] 
                 visionPremExp  *= 1 + self.inflation[j] 
-                dentalPremExp  *= 1 + self.inflation[j] 
+                dentalPremExp  *= 1 + self.inflation[j]
 
-                """CHILD INFLATION"""
-                hsaExp *= 1 + self.childInflation[j]
-                fsaExp *= 1 + self.childInflation[j]
-                hraExp *= 1 + self.childInflation[j]
+                hsa[i,j] = hsaExp * (1 + self.childInflation[j])
+                fsa[i,j] = fsaExp * (1 + self.childInflation[j])
+                hra[i,j] = hraExp * (1 + self.childInflation[j])
 
-                medicalPremExp *= 1 + self.childInflation[j]
-                visionPremExp  *= 1 + self.childInflation[j]
-                dentalPremExp  *= 1 + self.childInflation[j]
-
-                hsa[i,j] = hsaExp
-                fsa[i,j] = fsaExp
-                hra[i,j] = hraExp
-
-                medicalPrem[i,j] = medicalPremExp
-                visionPrem[i,j]  = visionPremExp
-                dentalPrem[i,j]  = dentalPremExp
+                medicalPrem[i,j] = medicalPremExp * (1 + self.childInflation[j])
+                visionPrem[i,j]  = visionPremExp * (1 + self.childInflation[j])
+                dentalPrem[i,j]  = dentalPremExp * (1 + self.childInflation[j])
 
         # Post-retirement
 
-        healthDed  = np.sum((hsa,fsa,hra),0)
-        healthBen  = np.sum((medicalPrem,visionPrem,dentalPrem),0)
-
-        return healthDed, healthBen
+        self.healthDed  = np.sum((hsa,fsa,hra),0)
+        self.healthBen  = np.sum((medicalPrem,visionPrem,dentalPrem),0)
     
     def retContCalc(self,retirement):        
         retire = self.vars.benefits.retirement
@@ -189,7 +195,7 @@ class Taxes:
     def ssTaxCalc(self):  
         # TODO: NEEDS UPDATE    
         self.taxableBenefits = np.zeros((self.iters,self.years))
-        ssTax = np.zeros((self.iters,self.years))
+        self.ssTax = np.zeros((self.iters,self.years))
 
         match self.filingType:
             case "JOINT":    socialSecurity = self.taxes.federal.ss.joint
@@ -197,14 +203,13 @@ class Taxes:
             case "SINGLE":   socialSecurity = self.taxes.federal.ss.single
             case _:          socialSecurity = self.taxes.federal.ss.single # Assume Single 
          
-        for i in range(self.iters):
-            for j in range(self.years):
-                combinedIncome = self.salary[i,j] + (self.ssIns[i,j] / 2)
-                for k in range(len(socialSecurity.bracketMax)):
-                    if combinedIncome < socialSecurity.bracketMax[k]:
-                        self.taxableBenefits[i,j] = socialSecurity.bracketPerc[k] * self.ssIns[i,j]
+        # for i in range(self.iters):
+        #     for j in range(self.years):
+        #         combinedIncome = self.salary[i,j] + (self.ssIns[i,j] / 2)
+        #         for k in range(len(socialSecurity.bracketMax)):
+        #             if combinedIncome < socialSecurity.bracketMax[k]:
+        #                 self.taxableBenefits[i,j] = socialSecurity.bracketPerc[k] * self.ssIns[i,j]
 
-        return ssTax
     
     def itemDedCalc(self):
         itemDed = self.taxes.federal.deductions.itemized
@@ -216,8 +221,8 @@ class Taxes:
         charDon = np.zeros((self.iters,self.years))
         slpDed = np.zeros((self.iters,self.years))
         
-        itemDedFed = np.zeros((self.iters,self.years))
-        itemDedState = np.zeros((self.iters,self.years))
+        self.itemDedFed = np.zeros((self.iters,self.years))
+        self.itemDedState = np.zeros((self.iters,self.years))
 
         for i in range(self.iters):
             for j in range(self.years):
@@ -235,58 +240,54 @@ class Taxes:
                     mortInt[i,j] = ((house.houseInt[j] / house.houseBal[j]) * itemDed.maxHouse) / self.iters
                 
                 # Charitable Donations
-                charDon[i,j] = charity.totalChar[j] / self.iters
+                charDon[i,j] = charity.total[j] / self.iters
                 
-                itemDedFed[i,j] = slpDed[i,j] + mortInt[i,j] + charDon[i,j]
+                self.itemDedFed[i,j] = slpDed[i,j] + mortInt[i,j] + charDon[i,j]
                 
                 # STATE
                 match self.filingState[i]:
-                    case "NJ": itemDedState[i,j] = 0
-                    case "MD": itemDedState[i,j] = 0
-        
-        return itemDedFed, itemDedState
+                    case "NJ": self.itemDedState[i,j] = 0
+                    case "MD": self.itemDedState[i,j] = 0
     
     def stdDedCalc(self):
         dedFed = self.taxes.federal.deductions.standard
 
-        stdDedFed = np.zeros((self.iters,self.years))
-        stdDedState = np.zeros((self.iters,self.years))
+        self.stdDedFed = np.zeros((self.iters,self.years))
+        self.stdDedState = np.zeros((self.iters,self.years))
                 
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
-                stdDedFed[i,j] = (dedFed.maxFed * self.numInd) / self.iters
+                self.stdDedFed[i,j] = (dedFed.maxFed * self.numInd) / self.iters
                 
                 # STATE
                 match self.filingState[i]:
                     case "NJ": 
-                        stdDedState[i,j] = 0                
+                        self.stdDedState[i,j] = 0                
                     case "MD":
                         dedState = self.taxes.state.md.deductions.standard
 
-                        stdDedState[i,j] = dedState.basePerc * self.income[i][j]
+                        self.stdDedState[i,j] = dedState.basePerc * self.income[i][j]
 
-                        if stdDedState[i,j] < dedState.stdDedMin / self.iters:
-                            stdDedState[i,j] = dedState.stdDedMin / self.iters
-                        elif stdDedState[i,j] > dedState.stdDedMax / self.iters:
-                            stdDedState[i,j] = dedState.stdDedMax / self.iters
+                        if self.stdDedState[i,j] < dedState.stdDedMin / self.iters:
+                            self.stdDedState[i,j] = dedState.stdDedMin / self.iters
+                        elif self.stdDedState[i,j] > dedState.stdDedMax / self.iters:
+                            self.stdDedState[i,j] = dedState.stdDedMax / self.iters
                     
                     case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY":
-                        stdDedState[i,j] = 0
-
-        return stdDedFed, stdDedState
+                        self.stdDedState[i,j] = 0
     
     def exemptCalc(self):
         fedExempt = self.taxes.federal.exemptions
 
-        exemptFed = np.zeros((self.iters,self.years))
-        persExemptState = np.zeros((self.iters,self.years))
-        childExemptState = np.zeros((self.iters,self.years))
+        self.exemptFed = np.zeros((self.iters,self.years))
+        self.persExemptState = np.zeros((self.iters,self.years))
+        self.childExemptState = np.zeros((self.iters,self.years))
         
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
-                exemptFed[i,j] = 0
+                self.exemptFed[i,j] = 0
                 
                 # STATE
                 match self.filingState[i]:
@@ -307,14 +308,14 @@ class Taxes:
                                 
                         for k in range(len(persExempt.bracketMax)):
                             if self.income[i][j] < persExempt.bracketMax[k]:
-                                persExemptState[i,j] = persExempt.bracketAmt[k]                                
+                                self.persExemptState[i,j] = persExempt.bracketAmt[k]                                
                                 break
                         
                         for childAge in self.childAges:
                             if childAge[j] > 0 and childAge[j] <= self.maxChildYr:
                                 for k in range(len(childExempt.bracketMax)):
                                     if self.income[i][j] < childExempt.bracketMax[k]:
-                                        childExemptState[i,j] += childExempt.bracketAmt[k] / self.iters
+                                        self.childExemptState[i,j] += childExempt.bracketAmt[k] / self.iters
                                         break
                     
                     case "MD":
@@ -334,21 +335,19 @@ class Taxes:
                         
                         for k in range(len(persExempt.bracketMax)):
                             if self.income[i][j] < persExempt.bracketMax[k]:
-                                persExemptState[i,j] = persExempt.bracketAmt[k]
+                                self.persExemptState[i,j] = persExempt.bracketAmt[k]
                                 break
                         
                         for childAge in self.childAges:
                             if childAge[j] > 0 and childAge[j] <= self.maxChildYr:
                                 for k in range(len(childExempt.bracketMax)):
                                     if self.income[i][j] < childExempt.bracketMax[k]:
-                                        childExemptState[i,j] += childExempt.bracketAmt[k] / self.iters
+                                        self.childExemptState[i,j] += childExempt.bracketAmt[k] / self.iters
                                         break
                     
                     case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY":
-                        persExemptState[i,j] = 0
-                        childExemptState[i,j] = 0
-        
-        return exemptFed, persExemptState, childExemptState
+                        self.persExemptState[i,j] = 0
+                        self.childExemptState[i,j] = 0
     
     def grossEarnCalc(self):
         itemDedFed = self.vars.taxes.federal.deductions.itemized.itemDedFed
@@ -365,35 +364,33 @@ class Taxes:
         healthDed = self.vars.benefits.health.healthDed
         healthBen = self.vars.benefits.health.healthBen
 
-        grossIncomeFed = np.zeros((self.iters,self.years))
-        grossIncomeState = np.zeros((self.iters,self.years))
+        self.grossIncomeFed = np.zeros((self.iters,self.years))
+        self.grossIncomeState = np.zeros((self.iters,self.years))
 
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
-                grossIncomeFed[i,j] = self.income[i][j] + self.taxableBenefits[i,j] - (contribution[i,j] + healthDed[i,j] + healthBen[i,j])
-                grossIncomeFed[i,j] -= itemDedFed[i,j] if itemDedFed[i,j] > stdDedFed[i,j] else stdDedFed[i,j]
+                self.grossIncomeFed[i,j] = self.income[i][j] + self.taxableBenefits[i,j] - (contribution[i,j] + healthDed[i,j] + healthBen[i,j])
+                self.grossIncomeFed[i,j] -= itemDedFed[i,j] if itemDedFed[i,j] > stdDedFed[i,j] else stdDedFed[i,j]
                 
                 # STATE
                 match self.filingState[i]:
                     case "NJ","CA":
-                        grossIncomeState[i,j] = self.income[i][j] - (contribution[i,j] + persExemptState[i,j] + childExemptState[i,j])
+                        self.grossIncomeState[i,j] = self.income[i][j] - (contribution[i,j] + persExemptState[i,j] + childExemptState[i,j])
                     case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY":
-                        grossIncomeState[i,j] = self.income[i][j]
+                        self.grossIncomeState[i,j] = self.income[i][j]
                     case _:
-                        grossIncomeState[i,j] = self.income[i][j] - (contribution[i,j] + persExemptState[i,j] + childExemptState[i,j] + healthDed[i,j])
+                        self.grossIncomeState[i,j] = self.income[i][j] - (contribution[i,j] + persExemptState[i,j] + childExemptState[i,j] + healthDed[i,j])
 
                 match self.filingState[i]:
                     case "CO", "CT", "KS", "MN", "MO", "MT", "NE", "NM", "ND", "RI", "UT", "VT", "WV":
-                        grossIncomeState[i,j] += self.taxableBenefits[i,j]
+                        self.grossIncomeState[i,j] += self.taxableBenefits[i,j]
                 
                 match self.filingState[i]:
                     case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY":
                         pass
                     case _:
-                        grossIncomeState[i,j] -= itemDedState[i,j] if itemDedState[i,j] > stdDedState[i,j] else stdDedState[i,j]
-
-        return grossIncomeFed, grossIncomeState
+                        self.grossIncomeState[i,j] -= itemDedState[i,j] if itemDedState[i,j] > stdDedState[i,j] else stdDedState[i,j]
     
     def slTaxCalc(self):
         house = self.vars.expenses.housing.house

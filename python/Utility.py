@@ -33,48 +33,28 @@ class Utility:
             mean = np.median(vals)
             
         return mean
-        
-    def nmspc2df(nmspc):
-        def createDf(ns):
-            tempDf = pd.DataFrame()
-            
-            attrs = Utility.getAttr(ns)
-            for attr in attrs:
-                tempDf[attr] = getattr(ns,attr)
-            
-            return tempDf
-
-        if isinstance(nmspc,list):
-            for i,ns in enumerate(nmspc):
-                if i == 0:
-                    df = createDf(ns)
-                else:
-                    tempDf = createDf(ns)
-                    df = df.append(tempDf,ignore_index=True)
-        else:
-            df = createDf(nmspc)
-                
-        return df
     
-    def dicts2df(dicts):
-        if isinstance(dicts,list):
-            for i,dic in enumerate(dicts):
-                if i == 0:
-                    df = pd.DataFrame.from_dict(dic)
-                else:
-                    df = df.append(pd.DataFrame.from_dict(dic))
-        else:
-            df = pd.DataFrame.from_dict(dicts)
-            
-        return df
+    def class2df(obj):
+        Utility.getAttr(obj)
+
     
     def getAttr(obj):
         attrs = []
-        for a in dir(obj):
-            if not callable(getattr(obj, a)) and not a.startswith("__"):
-                attrs.append(a)
+        for att, _ in obj.__dict__.items():
+            if not callable(getattr(obj, att)) and not att.startswith("__"):
+                attrs.append(att)
                 
         return attrs
+    
+    def getField(obj,field):
+        vals = []
+        fields = []
+        for att, _ in obj.__dict__.items():
+            if not callable(getattr(obj, att)) and not att.startswith("__"):
+                vals.append(getattr(getattr(obj,att),field))
+                fields.append(att)
+                
+        return vals,fields
 
     def normalize(x,xi,yi,xj=0,yj=1):
         norm = (((x - xi) / (yi - xi)) * (yj - xj)) + xj

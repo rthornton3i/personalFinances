@@ -1,4 +1,14 @@
-class Vars:
+import pandas as pd
+
+class Inputs():
+    file = 'Inputs.xlsx'
+
+    """ALLOCATIONS"""
+    allocationsSheet = 'Allocations'
+    earningsSheet = 'Earnings'
+    accountsSheet = 'Accounts'
+
+class Vars():
     def __init__(self):
         self.base = self.Base()
         self.salary = self.Salary()
@@ -10,7 +20,7 @@ class Vars:
         self.benefits = self.Benefits()
         self.taxes = self.Taxes()
         self.savings = self.Savings()
-        self.allocations = self.Allocations()
+        self.accounts = self.Accounts()
     
     class Base:
         def __init__(self):
@@ -111,7 +121,7 @@ class Vars:
                 self.carWth = []
                 self.carDwn = []
                 
-                self.totalCar = []
+                self.total = []
 
                 self.numCars = len(self.purYr)
 
@@ -135,7 +145,7 @@ class Vars:
                     self.gas = 20      
                     self.water = 40
                     
-                    self.totalRent = []
+                    self.total = []
                 
             class House:
                 def __init__(self):
@@ -167,7 +177,7 @@ class Vars:
                     self.houseWth = []
                     self.houseDwn = []
                     
-                    self.totalHouse = []
+                    self.total = []
                             
                     self.numHouses = len(self.purYr)
             
@@ -180,7 +190,7 @@ class Vars:
                 self.fastFood = 30
                 self.workFood = 30
                 
-                self.totalFood = []
+                self.total = []
         
         class Entertain:
             def __init__(self):
@@ -191,7 +201,7 @@ class Vars:
                 self.subs = (130/12) + 65 + (60/12) + (130/12) + (220/12) + (625/12) + (75/12) + (22/12) + (120/12)
                             #Amazon, Youtube, Nest, Costco, Beach, Chase, Microsoft, Nintendo, Dropbox
                 
-                self.totalEnt = []
+                self.total = []
             
         class PersonalCare:
             def __init__(self):
@@ -199,7 +209,7 @@ class Vars:
                 self.clothingShoes = 75
                 self.hairMakeup = 60
                 
-                self.totalPers = []
+                self.total = []
         
         class Healthcare:
             def __init__(self):
@@ -216,7 +226,7 @@ class Vars:
                 self.visits = [0,1,3]
                 self.costs = [40,200,1500]
                 
-                self.totalHealth = []
+                self.total = []
             
         class Pet:
             def __init__(self):
@@ -231,7 +241,7 @@ class Vars:
                 # Overall growth after 'years'
                 self.growthFactor = 1.5
                 
-                self.totalPet = []
+                self.total = []
         
         class Holiday:
             def __init__(self):
@@ -253,13 +263,13 @@ class Vars:
                 self.persVal = 100
                 self.persAnniv = 150
                 
-                self.totalHol = []        
+                self.total = []        
         
         class Charity:
             def __init__(self):
                 self.baseChar = 0.01
                 
-                self.totalChar = []
+                self.total = []
 #         
         
         class Education:
@@ -270,7 +280,7 @@ class Vars:
                 self.dining = 3000
                 self.books = 1500
                 
-                self.totalEd = []
+                self.total = []
         
         class Vacation:
             def __init__(self):
@@ -283,13 +293,13 @@ class Vars:
                 
                 self.numDays = 5
                 
-                self.totalVac = []
+                self.total = []
         
         class Major:
             def __init__(self):
                 self.majEvent = [[]] # [yr,cost]
 
-                self.totalMajor = []
+                self.total = []
         
         class Random:
             def __init__(self):
@@ -297,7 +307,7 @@ class Vars:
                 self.decayFactor = 4
                 self.binWid = 5
                 
-                self.totalRand = []
+                self.total = []
     
     class Benefits:
         def __init__(self):
@@ -463,121 +473,35 @@ class Vars:
                     def __init__(self):
                         self.childExemptState = []
     
-    class Savings:
+    class Savings():
         def __init__(self):
             self.savings = []
             self.contributions = []
             self.withdrawals = []
+
             self.allocations = []
-            self.earnings = []            
+            self.earnings = []
     
-    class Allocations:
+    class Accounts(Inputs):
         def __init__(self):
-            self.highDividend = self.Account()
-            self.lowVolatility = self.Account()
-            self.valueGrowth = self.Account()
-            self.indexFund = self.Account()
-            self.leverageFund = self.Account()
+            super().__init__()
+            
+            self.allocations = pd.read_excel(self.file,self.allocationsSheet,skiprows=1,index_col=0,header=None)
+            self.earnings = pd.read_excel(self.file,self.earningsSheet,skiprows=2,index_col=0,header=None)
+            self.accountSummary = pd.read_excel(self.file,self.accountsSheet,skiprows=2,index_col=0,header=None,names=['baseSavings','capGainsType','accountType'])
 
-            self.roth401k = self.Account()
-            self.trad401k = self.Account()
-
-            self.college529 = self.Account()
-
-            self.longTermSavings = self.Account()
-            self.shortTermSavings = self.Account()
-            self.spending = self.Account()
-
-            """HIGH DIVIDEND"""
-            self.highDividend.accountType   = 'INVESTING'
-            self.highDividend.capGainsType  = 'LONG'
-            self.highDividend.baseSavings   = 
-            self.highDividend.allocations   = 
-            self.highDividend.earnings      = 
-
-            """LOW VOLATILITY"""
-
-            """VALUE & GROWTH"""
-
-            """INDEX FUND"""
-
-            """LEVERAGE FUND"""
-
-            """ROTH 401K"""
-
-            """TRADITIONAL 401K"""
-
-            """COLLEGE 529"""
-
-            """LONG TERM SAVINGS"""
-
-            """SHORT TERM SAVINGS"""
-
-            """SPENDING"""
-        
-            self.capGainsType = ["LONG",
-                                 "LONG",
-                                 "LONG",
-                                 "LONG",
-                                 "SHORT",
-                                 "NONE",
-                                 "SHORT",
-                                 "NONE",
-                                 "NONE",
-                                 "NONE",
-                                 "NONE"]
-        
-            self.baseSavings = [0.15*29000,             #hiDiv      
-                                0.15*29000,             #lowVol   
-                                0.10*29000,             #valueGrowth   
-                                0.10*29000,             #sectorInd
-                                0.50*29000,             #swingDay    (Vanguard-TEMP)
-                                9000 + 19500 + 17500,   #retRoth401  (L3Harris, NG, L'Oreal)
-                                0,                      #retTrad401 
-                                1700,                   #col529      (Fidelity)
-                                73000 + 30000,          #longTerm    (Goldman Sach's)
-                                1000,                   #shortTerm   (PNC Growth, BoA Savings)
-                                5000 + 10000]           #spend       (PNC Spend, BoA Spend)
-        
-            self.allocations = [[1 , 1 , 2 , 3 , 3],    # 0 - hiDiv
-                                [1 , 1 , 2 , 3 , 3],    # 1 - lowVol
-                                [1 , 2 , 3 , 1 , 0],    # 2 - valueGrowth
-                                [1 , 2 , 2 , 1 , 0],    # 3 - sectorInd
-                                [4 , 2 , 1 , 0 , 0],    # 4 - swingDay
-                                [0 , 0 , 0 , 0 , 0],    # 5 - retRoth401
-                                [0 , 0 , 0 , 0 , 0],    # 6 - retTrad401
-                                [3 , 8 , 9 , 0 , 0],    # 7 - col529
-                                [5 , 8 , 5 , 3 , 10],   # 8 - longTerm
-                                [3 , 5 , 5 , 3 , 3],    # 9 - shortTerm
-                                [10, 10, 10, 10, 5]]    # 10 - spend
-        
-                              # Mean, Std
-            self.earnings =    [[4.0,0.5],
-                                [8.0,2.5],
-                                [10.0,3.0],
-                                [10.0,15.0],
-                                [30.0,30.0],
-                                [10.0,3.0,4.0,1.0],
-                                [10.0,3.0,4.0,1.0],
-                                [8.0,3.0,5.0,2.0],
-                                [1.5,0.5],
-                                [0.05,0.01],
-                                [0.01,0.01]]
-        
                             # To, From, [OPT] Yr
-            self.underflow =   [[[10],[9]],
-                                [[9],[8]],
-                                [[8],[4,3,2,1,0]],
-                                [[7],[4,3,2,1,0]]]
+            # self.underflow =   [[[10],[9]],
+            #                     [[9],[8]],
+            #                     [[8],[4,3,2,1,0]],
+            #                     [[7],[4,3,2,1,0]]]
         
-                        # From, To, Max, [OPT] Yr
-            self.overflow =    [[4,3,250e3],
-                                [4,3,0,15],
-                                [3,2,2e6],
-                                [2,1,2e6,25],
-                                [1,0,2e6,25]]
-        
-            self.numAccounts = len(self.allocations)
+            #             # From, To, Max, [OPT] Yr
+            # self.overflow =    [[4,3,250e3],
+            #                     [4,3,0,15],
+            #                     [3,2,2e6],
+            #                     [2,1,2e6,25],
+            #                     [1,0,2e6,25]]
         
         class Account:
             def __init__(self):
@@ -588,7 +512,11 @@ class Vars:
                 self.allocations = []
                 self.earnings = []
 
-# al = Vars.Allocations()
+# al = vars.accounts()
 # for att, _ in al.__dict__.items():
 #     print(att)
+# print('here')
+
+
+# vars = Vars()
 # print('here')

@@ -9,6 +9,7 @@ from Taxes import Taxes
 from Savings import Savings
 
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Main:
     def __init__(self):
@@ -20,19 +21,14 @@ class Main:
 
         vars = Vars()
         # totalExpenses = np.zeros((vars.expenses.numExpenses,vars.base.years))
-        # totalSavings = np.zeros((vars.allocations.numAccounts,vars.base.years))
+        # totalSavings = np.zeros((vars.accounts.numAccounts,vars.base.years))
         
         for i in range(vars.base.loops):
             vars = Vars()
             taxDict = TaxDict()
             """
-            Update arrays to object based maps with names
-            """
-
-            # Reader reader = new Reader(vars);
-            # reader.run();
-            """
-            Change all random's to numpy random
+            Update to dataframes where appropriate
+            Change functions to have no return and use class vars
             """
 
             setup = Setup(vars, taxDict)
@@ -49,6 +45,7 @@ class Main:
             """
             HSA values from healthcare expenses
             Add additional expenses (use Mint)
+            Excel file separate expenses and add which account to take from
             """
 
             taxes = Taxes(vars, taxDict)
@@ -57,6 +54,7 @@ class Main:
             Add 401k and SS to income in retirement
             Add Medicare expenses to health
             Add inflation assumption to deductions
+            Account for std deduction when retired
             """
 
             savings = Savings(vars)
@@ -78,5 +76,5 @@ class Main:
         # print("Elapsed time was " + (double)((stopTime - startTime) / 1e9) + " seconds.")
 
 main = Main()
-
+plt.show()
 print()
