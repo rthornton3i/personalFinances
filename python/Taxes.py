@@ -72,8 +72,8 @@ class Taxes:
         self.grossEarnCalc()
         self.vars.taxes.federal.grossIncomeFed = self.grossIncomeFed
         self.vars.taxes.state.grossIncomeState = self.grossIncomeState
-        plt.plot(self.grossIncomeFed[0])
-        plt.plot(self.grossIncomeState[0])
+        # plt.plot(self.grossIncomeFed[0])
+        # plt.plot(self.grossIncomeState[0])
 
 #      State Taxes
         self.vars.taxes.state.saltTaxes = self.slTaxCalc()
@@ -213,7 +213,7 @@ class Taxes:
     
     def itemDedCalc(self):
         itemDed = self.taxes.federal.deductions.itemized
-        house = self.vars.expenses.housing.house
+        house = self.vars.expenses.house
         charity = self.vars.expenses.charity
         saltTaxes = self.vars.taxes.state.saltTaxes
 
@@ -393,7 +393,7 @@ class Taxes:
                         self.grossIncomeState[i,j] -= itemDedState[i,j] if itemDedState[i,j] > stdDedState[i,j] else stdDedState[i,j]
     
     def slTaxCalc(self):
-        house = self.vars.expenses.housing.house
+        house = self.vars.expenses.house
         
         stateTax = np.zeros((self.iters,self.years))
         localTax = np.zeros((self.iters,self.years))

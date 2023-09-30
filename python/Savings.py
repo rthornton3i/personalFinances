@@ -2,6 +2,7 @@ from Utility import Utility
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 class Savings:
 
@@ -10,16 +11,13 @@ class Savings:
         
         self.years = vars.base.years
         self.numInd = vars.base.numInd
+        self.ages = self.vars.base.ages
         
         self.netCash = vars.taxes.netCash
         self.numAccounts = len(vars.accounts.__dict__.items())
         # self.accountName = vars.accounts.accountName
     
-    def run(self):
-        self.savings = np.zeros((self.numAccounts,self.years))
-        self.contributions = np.zeros((self.numAccounts,self.years))
-        self.withdrawals = np.zeros((self.numAccounts,self.years))
-        
+    def run(self):        
         self.allocCalc()
         self.vars.savings.allocations = self.allocations
 
@@ -44,16 +42,16 @@ class Savings:
         maxAllocation = tempAllocations.max(axis=None)
         binWidth = int(self.years / (tempAllocations.shape[1] - 1))
         
-        self.allocations = pd.DataFrame(columns=np.arange(self.years))
+        self.allocations = pd.DataFrame(index=np.arange(self.years))
         for _, acc in tempAllocations.iterrows():
-            self.allocations.loc[acc.name] = np.interp(np.arange(self.years),np.arange(0,self.years+1,binWidth),acc.values) / maxAllocation
+            self.allocations[acc.name] = np.interp(np.arange(self.years),np.arange(0,self.years+1,binWidth),acc.values) / maxAllocation
     
     def earningCalc(self):
         accounts = self.vars.accounts
 
         tempEarnings = accounts.earnings.copy()
         
-        self.earnings = pd.DataFrame(columns=np.arange(self.years))
+        self.earnings = pd.DataFrame(index=np.arange(self.years))
         values = []
         for _, acc in tempEarnings.iterrows():
             if any(np.isnan(acc.values)):
@@ -64,78 +62,64 @@ class Savings:
                 
                 values = [np.random.normal(mu[j],sigma[j]) for j in range(self.years)]
             
-            if accounts.accountSummary.loc[acc.name].accountType == 'SAVINGS':
+            if accounts.accountSummary.accountType[acc.name] == 'SAVINGS':
                 values = [0 if v < 0 else v for v in values]
 
-            self.earnings.loc[acc.name] = values 
+            self.earnings[acc.name] = values 
     
     def savingsCalc(self):
+        savings = self.vars.savings
+        expenses = self.vars.expenses
         accounts = self.vars.accounts
+
         ret = self.vars.benefits.retirement
-        exps = self.vars.expenses
-        house = self.vars.expenses.housing.house
+        house = self.vars.expenses.house
         cars = self.vars.expenses.cars
         
-        expenses = np.zeros(self.numAccounts)
-                       
-        for j in range(self.years):
-            # Retirement RMD
-            rmd = 0
-            avgAge = 0
-            for i in range(self.numInd):
-                avgAge += self.vars.base.ages[i,j]
-                if (j >= ret.rmdAge - self.vars.base.baseAges[i]):
-                    rmd += self.vars.salary.salBase[i] / np.sum(self.vars.salary.salBase)
+        # EXPENSES
+        self.expenses = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
+        for _,acc in expenses.__dict__.items():
+            if hasattr(acc,'allocation'):
+                self.expenses[acc.allocation] += acc.total
 
-            avgAge /= self.numInd
-            
-            # EXPENSES
-            for _, acc in accounts.earnings.iterrows():
-                match (acc.name.upper()):
-                    case 'COLLEGE529':
-                        expenses[i] = exps.education.total[j]
-                    
-                    case "LONGTERMSAVINGS":
-                        expenses[i] = house.houseDwn[j] + cars.carDwn[j] + exps.major.total[j]  
-                    
-                    case "SHORTTERMSAVINGS":
-                        expenses[i] = exps.vacation.total[j] + exps.charity.total[j] + exps.random.total[j]  
-                    
-                    case "SPENDING":
-                        expenses[i] = exps.housing.rent.total[j] + exps.housing.house.total[j] + exps.cars.total[j] + \
-                                      exps.food.total[j] + exps.entertain.total[j] + exps.personalCare.total[j] + \
-                                      exps.healthcare.total[j] + exps.pet.total[j] + exps.holiday.total[j]  
-            
-            # CONTRIBUTIONS
-            totalExpenses = np.sum(expenses)
-            if (totalExpenses > self.netCash[j]):
-                netCont = self.netCash[j]
-            else:
-                netCont = totalExpenses
-            
-            remCash = self.netCash[j] - netCont
-            
-            # SAVINGS
-            for i in range(self.numAccounts):                
-                # CONTRIBUTIONS
-                if (j == 0):
-                    self.savings[i,j] += self.vars.accounts.baseSavings[i]
+        # for j in range(self.years):
+        #     # Retirement RMD
+        #     reqMinDist = 0
+        #     avgAge = 0
+        #     for i in range(self.numInd):
+        #         avgAge += self.vars.base.ages[i,j]
+        #         if (j >= ret.rmdAge - self.vars.base.baseAges[i]):
+        #             reqMinDist += self.vars.salary.salBase[i] / np.sum(self.vars.salary.salBase)
+
+        #     avgAge /= self.numInd
+        
+        # SAVINGS
+        self.savings = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
+        for accName,_ in savings.earnings.items():
+            for j in range(self.years):
+                # Base savings
+                if j == 0:
+                    self.savings[accName][0] += accounts.accountSummary.baseSavings[accName]
                 else:
-                    self.savings[i,j] += self.savings[i][j-1]
+                    self.savings[accName][j] += self.savings[accName][j-1]
 
-                self.contributions[i,j] += ((expenses[i] / totalExpenses) * netCont)
-                self.contributions[i,j] += (self.allocations[i,j] * remCash)
-                self.savings[i,j] += self.contributions[i,j]
+                # Allocation of net cash
+                self.savings[accName][j] += self.allocations[accName][j] * self.netCash[j]
+            
+                # Remove expenses
+                self.savings[accName][j] -= self.expenses[accName][j]
+
+                # Add earnings
+                self.savings[accName][j] *= 1 + self.earnings[accName]
+
+                # Retirement distributions
+                if accounts.accountSummary.accountType[accName] == 'RETIRE':
+                    rmdDist = 0
+                    for ind in range(self.numInd):
+                        ageFactor = self.ages[ind] * np.power(ret.rmdFactor[0],2) + self.ages[ind] * ret.rmdFactor[1] + ret.rmdFactor[2]
+                        rmdDist += self.savings[accName][j] / ageFactor
                 
-                # EXPENSES
-                self.savings[i,j] -= expenses[i]
-                rmdDist = 0
-                match (self.accountName[i].upper()):
-                    case "ROTH 401K", "TRADITIONAL 401K":
-                        if (rmd > 0):
-                            accValue = (self.savings[i,j] * rmd)
-                            ageFactor = avgAge * np.power(ret.rmdFactor[0],2) + avgAge * ret.rmdFactor[1] + ret.rmdFactor[2]
-                            rmdDist = (accValue / ageFactor)
+                    self.savings[accName][j] -= rmdDist
                         
                 match (self.accountName[i].upper()):
                     case "ROTH 401K": # ROTH 401k
@@ -149,37 +133,37 @@ class Savings:
                 # EARNINGS
                 if (self.savings[i,j] > 0):
                     self.savings[i,j] *= 1 + self.earnings[i,j]
-                
-            # UNDERFLOW
-            for under in self.vars.accounts.underflow:
-                if (len(under) == 3):
-                    if (j >= under[2][0]):
+                    
+                # UNDERFLOW
+                for under in self.vars.accounts.underflow:
+                    if (len(under) == 3):
+                        if (j >= under[2][0]):
+                            self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
+                            self.savings = self.withdrawal.savings
+                        
+                    else:
                         self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
                         self.savings = self.withdrawal.savings
                     
-                else:
-                    self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
-                    self.savings = self.withdrawal.savings
-                
-            # OVERFLOW
-            for over in self.vars.accounts.overflow:
-                if (len(over) == 4):
-                    if (j >= over[3]):
+                # OVERFLOW
+                for over in self.vars.accounts.overflow:
+                    if (len(over) == 4):
+                        if (j >= over[3]):
+                            self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
+                            self.savings = self.withdrawal.savings
+                        
+                    else:
                         self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
                         self.savings = self.withdrawal.savings
-                    
-                else:
-                    self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
-                    self.savings = self.withdrawal.savings
-            
-            childMax = False
-            for i in range(len(self.vars.children.childAges)):
-                if (self.vars.children.childAges[i,j] > self.vars.children.maxChildYr):
-                    childMax = True
+                
+                childMax = False
+                for i in range(len(self.vars.children.childAges)):
+                    if (self.vars.children.childAges[i,j] > self.vars.children.maxChildYr):
+                        childMax = True
 
-            if (childMax):
-                self.withdrawal = self.overFlow(self.savings,j,7,8,0) # College to Long-Term (Excess)
-                self.savings = self.withdrawal.savings 
+                if (childMax):
+                    self.withdrawal = self.overFlow(self.savings,j,7,8,0) # College to Long-Term (Excess)
+                    self.savings = self.withdrawal.savings 
     
     def overFlow(self,savingsIn, yr, indFrom, indTo, maxVal):
         overFlow = Withdrawal()

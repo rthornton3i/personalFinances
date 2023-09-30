@@ -14,7 +14,7 @@ class Loans:
         self.loanDwn  = np.zeros(self.years)
 
         """HOUSING LOANS"""
-        house = self.vars.expenses.housing.house
+        house = self.vars.expenses.house
         for i in range(house.numHouses):
             sellPrev = False if i == 0 else True
 

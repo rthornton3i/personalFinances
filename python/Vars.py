@@ -8,6 +8,7 @@ class Inputs():
     earningsSheet = 'Earnings'
     accountsSheet = 'Accounts'
 
+    """EXPENSES"""
     carSheet = 'Car'
     homeSheet = 'Home'
     rentSheet = 'Rent'
@@ -22,7 +23,6 @@ class Inputs():
     vacationSheet = 'Vacation'
     majorSheet = 'Major'
     randomSheet = 'Random'
-    otherSheet = 'Other'
 
 class Vars():
     def __init__(self):
@@ -67,8 +67,8 @@ class Vars():
             self.promotionWaitPeriod = 3
             self.promotionGrowth = [0.06,0.08,0.125]
 
-            self.wageInd = 0.035#0.043
-            self.wageDev = 0.023
+            self.wageInd = 0#0.035#0.043
+            self.wageDev = 0#0.023
             
             self.salary = []
             self.income = []
@@ -88,7 +88,8 @@ class Vars():
     class Expenses:
         def __init__(self):
             self.cars = self.Cars()
-            self.housing = self.Housing()
+            self.house = self.House()
+            self.rent = self.Rent()
             
             self.food = self.Food()
             self.entertain = self.Entertain()
@@ -137,57 +138,52 @@ class Vars():
 
                 self.numCars = self.carSummary.shape[0]
 
-        class Housing:
+        class Rent:
             def __init__(self):
-                self.rent = self.Rent()
-                self.house = self.House()
-
-            class Rent:
-                def __init__(self):
-                    self.rentYr = [0,1]
-                    
-                    # Total cost per month
-                    self.baseRent = 2100
-                    self.rentFees = 75 + 50 + 25 # Parking, Pet, Trash
-                    
-                    self.repairs = 50
-                    self.insurance = 20
-                    
-                    self.electricity = 140
-                    self.gas = 20      
-                    self.water = 40
-                    
-                    self.total = []
+                self.rentYr = [0,1]
                 
-            class House(Inputs):
-                def __init__(self):
-                    super().__init__()
-                    
-                    self.houseSummary = pd.read_excel(self.file,self.homeSheet,header=1,usecols='A:G',
-                                                names=['purYr','sellYr','prin','down','app','term','rate']).dropna()
+                # Total cost per month
+                self.baseRent = 2100
+                self.rentFees = 75 + 50 + 25 # Parking, Pet, Trash
                 
-                    self.allocation = pd.read_excel(self.file,self.homeSheet,header=None,skiprows=9,usecols='J',nrows=1).iloc[0,0]
+                self.repairs = 50
+                self.insurance = 20
+                
+                self.electricity = 140
+                self.gas = 20      
+                self.water = 40
+                
+                self.total = []
+            
+        class House(Inputs):
+            def __init__(self):
+                super().__init__()
+                
+                self.houseSummary = pd.read_excel(self.file,self.homeSheet,header=1,usecols='A:G',
+                                            names=['purYr','sellYr','prin','down','app','term','rate']).dropna()
+            
+                self.allocation = pd.read_excel(self.file,self.homeSheet,header=None,skiprows=9,usecols='J',nrows=1).iloc[0,0]
 
-                    homeFields = pd.read_excel(self.file,self.homeSheet,header=None,index_col=0,skiprows=1,usecols='I,K:M',nrows=7,names=None)
-                    self.propTax        = homeFields.loc['Property Tax'].values[0]
-                    self.insurance      = homeFields.loc['Insurance'].values[0]
-                    self.repairs        = homeFields.loc['Repairs'].values[0:]
-                    self.electricity    = homeFields.loc['Electricity'].values[0]
-                    self.gas            = homeFields.loc['Gas'].values[0]
-                    self.water          = homeFields.loc['Water'].values[0]
+                homeFields = pd.read_excel(self.file,self.homeSheet,header=None,index_col=0,skiprows=1,usecols='I,K:M',nrows=7,names=None)
+                self.propTax        = homeFields.loc['Property Tax'].values[0]
+                self.insurance      = homeFields.loc['Insurance'].values[0]
+                self.repairs        = homeFields.loc['Repairs'].values[0:]
+                self.electricity    = homeFields.loc['Electricity'].values[0]
+                self.gas            = homeFields.loc['Gas'].values[0]
+                self.water          = homeFields.loc['Water'].values[0]
 
-                    self.preBal = homeFields.loc['Previous Balance'].values[0]
+                self.preBal = homeFields.loc['Previous Balance'].values[0]
 
-                    self.houseBal = []
-                    self.housePay = []
-                    self.housePrn = []
-                    self.houseInt = []
-                    self.houseWth = []
-                    self.houseDwn = []
-                    
-                    self.total = []
-                            
-                    self.numHouses = self.houseSummary.shape[0]
+                self.houseBal = []
+                self.housePay = []
+                self.housePrn = []
+                self.houseInt = []
+                self.houseWth = []
+                self.houseDwn = []
+                
+                self.total = []
+                        
+                self.numHouses = self.houseSummary.shape[0]
             
         class Food(Inputs):
             def __init__(self):
@@ -551,15 +547,7 @@ class Vars():
             #                     [3,2,2e6],
             #                     [2,1,2e6,25],
             #                     [1,0,2e6,25]]
-        
-        class Account:
-            def __init__(self):
-                self.accountName = []
-                self.accountType = []   # INVESTING, SAVINGS
-                self.capGainsType = []  # LONG, SHORT, NONE
-                self.baseSavings = []
-                self.allocations = []
-                self.earnings = []
+
 
 # al = vars.accounts()
 # for att, _ in al.__dict__.items():

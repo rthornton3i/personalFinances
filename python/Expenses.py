@@ -18,8 +18,8 @@ class Expenses:
     
     def run(self):
         exp =  self.vars.expenses
-        exp.housing.rent.total = self.rentExp()
-        exp.housing.house.total = self.housingExp()
+        exp.rent.total = self.rentExp()
+        exp.house.total = self.housingExp()
         exp.cars.total = self.carExp()
         
         exp.food.total = self.foodExp()
@@ -36,8 +36,8 @@ class Expenses:
         exp.major.total = self.majExp()
         exp.random.total = self.randExp()
         
-        exp.totalExpenses = np.sum((exp.housing.rent.total, \
-                                    exp.housing.house.total, \
+        exp.totalExpenses = np.sum((exp.rent.total, \
+                                    exp.house.total, \
                                     exp.cars.total, \
                                     exp.food.total, \
                                     exp.entertain.total, \
@@ -54,7 +54,7 @@ class Expenses:
         return self.vars
     
     def rentExp(self):
-        rent = self.vars.expenses.housing.rent
+        rent = self.vars.expenses.rent
         
         total = np.zeros(self.years)
         
@@ -69,7 +69,7 @@ class Expenses:
         return total
     
     def housingExp(self):
-        house = self.vars.expenses.housing.house
+        house = self.vars.expenses.house
         
         total = np.zeros(self.years)
         

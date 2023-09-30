@@ -35,13 +35,12 @@ class Main:
             vars = setup.run()
             """
             Get 401k totals for minimum distribution
-            Add numChildren array [0,0,1,1,2...,2,1,1,0]
             """
 
             loans = Loans(vars)
             vars = loans.run()
             """
-            Add function to autofill
+            Add function to autofill???
             """
 
             expenses = Expenses(vars)
