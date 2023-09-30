@@ -2,7 +2,6 @@ from Utility import Utility
 
 import numpy as np
 import pandas as pd
-import math
 
 class Savings:
 
@@ -135,7 +134,7 @@ class Savings:
                     case "ROTH 401K", "TRADITIONAL 401K":
                         if (rmd > 0):
                             accValue = (self.savings[i,j] * rmd)
-                            ageFactor = avgAge * math.pow(ret.rmdFactor[0],2) + avgAge * ret.rmdFactor[1] + ret.rmdFactor[2]
+                            ageFactor = avgAge * np.power(ret.rmdFactor[0],2) + avgAge * ret.rmdFactor[1] + ret.rmdFactor[2]
                             rmdDist = (accValue / ageFactor)
                         
                 match (self.accountName[i].upper()):

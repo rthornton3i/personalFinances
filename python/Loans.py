@@ -1,13 +1,9 @@
 import numpy as np
-import math
 
 class Loans:
     def __init__(self, vars):
         self.vars = vars
         self.years = vars.base.years
-        
-        self.house = vars.expenses.housing.house
-        self.car = vars.expenses.cars
     
     def run(self):
         self.loanBal  = np.zeros(self.years)
@@ -19,7 +15,7 @@ class Loans:
 
         """HOUSING LOANS"""
         house = self.vars.expenses.housing.house
-        for i in range(self.house.numHouses):
+        for i in range(house.numHouses):
             sellPrev = False if i == 0 else True
 
             [house.houseBal, 
@@ -27,14 +23,14 @@ class Loans:
              house.housePrn, 
              house.houseInt, 
              house.houseWth, 
-             house.houseDwn]  = self.loanCalc(self.house.purYr[i], \
-                                                self.house.sellYr[i], \
-                                                self.house.term[i], \
-                                                self.house.rate[i], \
-                                                self.house.prin[i], \
-                                                self.house.down[i], \
-                                                self.house.app[i], \
-                                                sellPrev)
+             house.houseDwn]  = self.loanCalc(house.houseSummary.purYr[i], \
+                                            house.houseSummary.sellYr[i], \
+                                            house.houseSummary.term[i], \
+                                            house.houseSummary.rate[i], \
+                                            house.houseSummary.prin[i], \
+                                            house.houseSummary.down[i], \
+                                            house.houseSummary.app[i], \
+                                            sellPrev)
         
         """RESET VARS"""
         self.loanBal  = np.zeros(self.years)
@@ -46,29 +42,31 @@ class Loans:
         
         """CAR LOANS"""
         cars = self.vars.expenses.cars
-        for i in range(self.car.numCars):        
+        for i in range(cars.numCars):        
             [cars.carBal, 
              cars.carPay, 
              cars.carPrn, 
              cars.carInt, 
              cars.carWth, 
-             cars.carDwn]  = self.loanCalc(self.car.purYr[i], \
-                                            self.car.sellYr[i], \
-                                            self.car.term[i], \
-                                            self.car.rate[i], \
-                                            self.car.prin[i], \
-                                            self.car.down[i], \
-                                            self.car.app[i])
+             cars.carDwn]  = self.loanCalc(cars.carSummary.purYr[i], \
+                                            cars.carSummary.sellYr[i], \
+                                            cars.carSummary.term[i], \
+                                            cars.carSummary.rate[i], \
+                                            cars.carSummary.prin[i], \
+                                            cars.carSummary.down[i], \
+                                            cars.carSummary.app[i])
         
         return self.vars
     
     def loanCalc(self,purYr, sellYr, term, rate, prin, down, app, sellPrev=False):
         # Up to 1 house from previous year and 1 previous balance/worth
         
-        rate /= 100 * 12
-        app /= 100 * 12
-        down /= 100
+        rate /= 12
+        app /= 12
         term *= 12
+
+        purYr = int(purYr)
+        sellYr = int(sellYr)
         
         downPay = down * prin
         prinPay = prin - self.loanWth[purYr-1] + self.loanBal[purYr-1] if sellPrev else prin
@@ -77,19 +75,19 @@ class Loans:
         monthBal,monthPay,monthPrn,monthInt,monthWth = np.zeros(12),np.zeros(12),np.zeros(12),np.zeros(12),np.zeros(12)
 
         """CREATE LOAN ARRAY SIZES BASED ON PURCHASE YEAR"""
-        arrSize = self.years + abs(purYr) if purYr < 0 else self.years
-        yrInd = 0 if purYr < 0 else purYr        
-        end = (sellYr - purYr) * 12 if sellYr > purYr else self.years * 12        
+        arrSize = int(self.years + abs(purYr) if purYr < 0 else self.years)
+        yrInd = int(0 if purYr < 0 else purYr)
+        end = int((sellYr - purYr) * 12 if sellYr > purYr else self.years * 12)
         
         yearBal,yearPay,yearPrn,yearInt,yearWth = np.zeros(arrSize),np.zeros(arrSize),np.zeros(arrSize),np.zeros(arrSize),np.zeros(arrSize)
         
         mthInd = 0
         for i in range(end):
-            termConst = math.pow((1 + rate),term)
+            termConst = np.power((1 + rate),term)
             
             """GET MONTHLY COMPOUNDED VALUES"""
             if i < term:
-                monthBal[mthInd] = prinPay * (termConst - math.pow((1 + rate),i+1)) / (termConst - 1)
+                monthBal[mthInd] = prinPay * (termConst - np.power((1 + rate),i+1)) / (termConst - 1)
                 monthPay[mthInd] = prinPay * (rate * termConst) / (termConst - 1)
                 if monthBal[mthInd] < 0:
                     monthPay[mthInd] += monthBal[mthInd]
@@ -109,7 +107,7 @@ class Loans:
                 monthPrn[mthInd] = 0
                 monthInt[mthInd] = 0
             
-            monthWth[mthInd] = prin * math.pow((1 + app),i)
+            monthWth[mthInd] = prin * np.power((1 + app),i)
             
             """SUM UP YEARLY VALUES"""
             if mthInd == 11:

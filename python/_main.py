@@ -35,17 +35,24 @@ class Main:
             vars = setup.run()
             """
             Get 401k totals for minimum distribution
+            Add numChildren array [0,0,1,1,2...,2,1,1,0]
             """
 
             loans = Loans(vars)
             vars = loans.run()
+            """
+            Add function to autofill
+            """
 
             expenses = Expenses(vars)
             vars = expenses.run()
             """
             HSA values from healthcare expenses
             Add additional expenses (use Mint)
-            Excel file separate expenses and add which account to take from
+            Add auto adjustments to car repair, fuel and insurance based on age and initial car cost
+                                    house repairs, insurance, and utilities based on initial house cost
+            Add single row extended down feature
+            Add "other" expenses
             """
 
             taxes = Taxes(vars, taxDict)

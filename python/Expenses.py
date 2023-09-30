@@ -1,6 +1,5 @@
 import numpy as np
-import math
-import random
+import matplotlib.pyplot as plt
 
 class Expenses:
     def __init__(self, vars):
@@ -74,15 +73,14 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        firstYear = 0 if house.purYr[0] < 0 else house.purYr[0]
-        
-        for i in range(firstYear,self.years):
-            total[i] = house.housePay[i]
-            total[i] += house.houseWth[i] * (house.repairs + house.insurance)
+        firstYear = 0 if house.houseSummary.purYr[0] < 0 else house.houseSummary.purYr[0]
 
         homeUtil = (house.electricity + house.gas + house.water) * 12
         for i in range(firstYear,self.years):
             homeUtil *= 1 + self.inflation[i]
+
+            total[i] = house.housePay[i]
+            total[i] += np.random.triangular(house.repairs[0],house.repairs[1],house.repairs[2]) + house.insurance
             total[i] += homeUtil
         
         total += house.houseDwn
@@ -120,7 +118,7 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        entertainExps = (entertain.wifi + entertain.cell + entertain.tv + entertain.subs) * 12
+        entertainExps = (entertain.internet + entertain.phone + np.nansum(entertain.tv) + np.nansum(entertain.software) + np.nansum(entertain.memberships)) * 12
         for i in range(self.years):
             entertainExps *= 1 + self.inflation[i]
             total[i] = entertainExps * (1 + self.childInflation[i])
@@ -132,7 +130,7 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        persExps = (personalCare.clothingShoes + personalCare.hairMakeup) * 12
+        persExps = (personalCare.clothing + personalCare.shoes + personalCare.hair + personalCare.makeup + personalCare.products) * 12
         for i in range(self.years):
             persExps *= 1 + self.inflation[i]
             total[i] = persExps * (1 + self.childInflation[i])
@@ -182,7 +180,7 @@ class Expenses:
                         else:
                             cost = 0
                 
-                total[i,j] += health.drugs[i] * 12
+                total[i,j] += health.drugs * 12
                 total[i,j] *= (1 + self.childInflation[i]) / self.iters
         
         return np.sum(total, 0)
@@ -192,7 +190,7 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        petExps = (pet.food + pet.essentials + pet.toys + pet.careTaker + pet.vet + pet.insurance) * 12
+        petExps = (pet.food + pet.essentials + pet.toys + pet.careTaker + pet.vet) * 12
         for i in range(self.years):
             petExps *= 1 + self.inflation[i]
             total[i] = petExps
@@ -244,7 +242,8 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        vacExp = (vacation.travel + ((vacation.events + vacation.food) * vacation.numDays) + ((vacation.hotel + vacation.carRental) * vacation.numDays)) * self.numInd
+        numDays = np.random.triangular(vacation.numDays[0],vacation.numDays[1],vacation.numDays[2])
+        vacExp = vacation.travel + ((vacation.events + vacation.food) * numDays) + ((vacation.hotel + vacation.carRental) * numDays)
         for i in range(self.years):            
             vacExp *= 1 + self.inflation[i]
             total[i] = vacExp * (1 + self.childInflation[i])
@@ -268,10 +267,9 @@ class Expenses:
         total = np.zeros(self.years)
         
         for i in range(self.years):
-            for event in major.majEvent:
-                if len(event) > 0:
-                    if event[0] == i:
-                        total[i] += event[1]
+            for _, event in major.majorSummary.iterrows():
+                if event.purYr == i:
+                    total[i] += event.cost
         
         return total
     
@@ -283,16 +281,16 @@ class Expenses:
         # Reference
         y = np.zeros(self.years)
         for i in range(self.years):
-            y[i] = math.exp(-i / (self.years / rand.decayFactor))
+            y[i] = np.exp(-i / (self.years / rand.decayFactor))
         
         expWid = rand.maxExp * rand.binWid / self.years
         
         for i in range(self.years):
-            curBin = math.floor(i / rand.binWid)
+            curBin = np.floor(i / rand.binWid)
             
             while True:
-                expense = -(rand.maxExp / rand.decayFactor) * math.log(np.random.random())
-                expBin = math.floor(expense / expWid)
+                expense = -(rand.maxExp / rand.decayFactor) * np.log(np.random.random())
+                expBin = np.floor(expense / expWid)
                 
                 if expBin <= curBin:
                     total[i] = expense
