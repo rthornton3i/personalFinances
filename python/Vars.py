@@ -45,7 +45,9 @@ class Vars():
 
             self.baseAges = [28,28]
             self.retAges = [55,55]
+            
             self.ages = []
+            self.isRetire = []
             
             self.numInd = len(self.baseAges)
     
@@ -83,7 +85,7 @@ class Vars():
             
             self.childAges = []
             self.childInflation = []
-    
+            self.isKids = []
     
     class Expenses:
         def __init__(self):

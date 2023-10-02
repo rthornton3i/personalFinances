@@ -26,8 +26,11 @@ class Setup:
         # Ages
         self.ageCalc()
         child = self.vars.children
-        self.vars.base.ages = self.ages
+        base = self.vars.base
+        base.ages = self.ages
+        base.isRetire = self.isRetire
         child.childAges = self.childAges
+        child.isKids = self.isKids
         
         
         # Salary
@@ -103,7 +106,7 @@ class Setup:
             for j in range(self.numInd):
                 self.ages[j,i] = base.baseAges[j] + i
             
-            for ch in child.childYrs:
+            for j,ch in enumerate(child.childYrs):
                 if i >= ch and i < ch+child.maxChildYr:
                     self.childAges[j,i] = i - ch
         

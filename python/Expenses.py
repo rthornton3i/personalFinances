@@ -232,8 +232,8 @@ class Expenses:
         for i in range(self.years):
             edExps *= 1 + self.inflation[i]
             for j in range(len(self.childAges)):
-                if self.childAges[j,i] >= 18 and self.childAges[j,i] < self.maxChildYr:
-                    total[i] = edExps
+                if self.childAges[j,i] >= 18 and self.childAges[j,i] < 22:
+                    total[i] += edExps
         
         return total
     
