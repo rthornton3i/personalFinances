@@ -40,6 +40,7 @@ class Setup:
         sal.income = self.income
         sal.grossIncome = self.grossIncome
         sal.inflation = self.inflation
+        sal.summedInflation = self.summedInflation
         child.childInflation = self.childInflation
                 
         # Social Security
@@ -91,6 +92,10 @@ class Setup:
         self.inflation = [np.random.normal(sal.wageInd,sal.wageDev) for _ in range(self.years)]
         self.inflation[0] = 0
 
+        self.summedInflation = np.ones(self.years)
+        for i in range(1,self.years):
+            self.summedInflation[i] = self.summedInflation[i-1]*(1+self.inflation[i])
+
         self.childInflation = child.childInflationVal * self.isKids
 
     def ageCalc(self):
@@ -98,7 +103,7 @@ class Setup:
         child = self.vars.children
 
         self.ages = np.zeros((self.numInd,self.years))
-        self.childAges = np.zeros((len(child.childYrs),self.years))
+        self.childAges = np.zeros((len(child.childBaseAges),self.years))
         self.isKids = np.zeros(self.years)
         self.isRetire = np.zeros((self.numInd,self.years))
 
@@ -106,12 +111,12 @@ class Setup:
             for j in range(self.numInd):
                 self.ages[j,i] = base.baseAges[j] + i
             
-            for j,ch in enumerate(child.childYrs):
-                if i >= ch and i < ch+child.maxChildYr:
-                    self.childAges[j,i] = i - ch
+            for j,ch in enumerate(child.childBaseAges):
+                if ch >= 0 and i < child.maxChildYr-ch:
+                    self.childAges[j,i] = i + ch
         
-        for ch in child.childYrs:
-            self.isKids[ch:ch+child.maxChildYr] += 1
+        for ch in child.childBaseAges:
+            self.isKids[max(0,-ch):max(0,-ch)+child.maxChildYr-ch] += 1
 
         for ind in range(self.numInd):
             self.isRetire[ind,self.ages[ind]>base.retAges[ind]] = 1

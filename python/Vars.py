@@ -3,6 +3,9 @@ import pandas as pd
 class Inputs():
     file = 'Inputs.xlsx'
 
+    """BASE"""
+    inputSheet = 'Inputs'
+
     """ALLOCATIONS"""
     allocationsSheet = 'Allocations'
     earningsSheet = 'Earnings'
@@ -38,50 +41,67 @@ class Vars():
         self.savings = self.Savings()
         self.accounts = self.Accounts()
     
-    class Base:
+    class Base(Inputs):
         def __init__(self):
-            self.loops = 1
-            self.years = 60
+            super().__init__()
 
-            self.baseAges = [28,28]
-            self.retAges = [55,55]
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=24,names=None)
+            
+            self.loops = inputFields.loc['Iterations'].values[0]
+            self.years = inputFields.loc['Years'].values[0]
+
+            self.baseAges = inputFields.loc['Ages'].values[0:2]
+            self.retAges  = inputFields.loc['Retirement Age'].values[0:2]
             
             self.ages = []
             self.isRetire = []
             
             self.numInd = len(self.baseAges)
     
-    class Filing:
+    class Filing(Inputs):
         def __init__(self):
-            self.filingType = "JOINT"
-            self.filingState = ["NJ","NJ"]
+            super().__init__()
+
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=24,names=None)
+            
+            self.filingType  = inputFields.loc['Filing'].values[0]
+            self.filingState = inputFields.loc['Filing State'].values[0:2]
             
             self.iters = []
     
-    class Salary:
+    class Salary(Inputs):
         def __init__(self):
-            self.salBase   = [96000,119800]
-            self.prevSal = [[88428,80354,94175,93107],[98049,99027,114805,109016]]
+            super().__init__()
 
-            self.salGrowth = [0.025,0.035,0.045] #%
-            self.salBonus = [0.0,0.04,0.065] #% for each individual
-            self.promotionChance = 0.25
-            self.promotionWaitPeriod = 3
-            self.promotionGrowth = [0.06,0.08,0.125]
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=24,names=None).drop(columns=1)
 
-            self.wageInd = 0#0.035#0.043
-            self.wageDev = 0#0.023
+            self.salBase = inputFields.loc['Salary'].values[0:2]
+            self.prevSal = [inputFields.loc['Previous Salary (#1)'].values[0:],inputFields.loc['Previous Salary (#2)'].values[0:]]
+
+            self.salGrowth = inputFields.loc['Salary Growth'].values[0:3]
+            self.salBonus  = inputFields.loc['Bonus'].values[0:3]
+            self.promotionChance     = inputFields.loc['Chance of Promotion'].values[0]
+            self.promotionWaitPeriod = inputFields.loc['Promotion Wait Period'].values[0]
+            self.promotionGrowth     = inputFields.loc['Promotion Growth'].values[0:3]
+
+            self.wageInd = inputFields.loc['Inflation Average'].values[0]
+            self.wageDev = inputFields.loc['Inflation Std Dev'].values[0]
             
             self.salary = []
             self.income = []
             self.grossIncome = []  
             self.inflation = []
+            self.summedInflation = []
     
-    class Children:
+    class Children(Inputs):
         def __init__(self):
-            self.childYrs = [1,3]
-            self.maxChildYr = 22
-            self.childInflationVal = 0.35
+            super().__init__()
+
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=24,names=None)
+
+            self.childBaseAges          = inputFields.loc['Child Ages'].values[0:]
+            self.maxChildYr        = inputFields.loc['Max Age of Childcare'].values[0]
+            self.childInflationVal = inputFields.loc['Child Inflation'].values[0]
             
             self.childAges = []
             self.childInflation = []
@@ -142,7 +162,7 @@ class Vars():
 
         class Rent:
             def __init__(self):
-                self.rentYr = [0,1]
+                self.rentYr = []
                 
                 # Total cost per month
                 self.baseRent = 2100
@@ -238,17 +258,16 @@ class Vars():
                 
                 self.allocation = pd.read_excel(self.file,self.healthCareSheet,header=None,skiprows=11,usecols='B',nrows=1).iloc[0,0]
 
-                insuranceFields = pd.read_excel(self.file,self.healthCareSheet,header=None,index_col=0,skiprows=1,nrows=3,names=None).iloc[:,1:]
+                insuranceFields = pd.read_excel(self.file,self.healthCareSheet,header=None,index_col=0,skiprows=1,nrows=9,names=None).iloc[:,1:]
                 self.deductible     = insuranceFields.loc['Deductible'].values[0:]
                 self.coinsurance    = insuranceFields.loc['Coinsurance'].values[0:]
                 self.maxOOP         = insuranceFields.loc['Max Out-of-Pocket'].values[0:]
+                
+                self.visits = insuranceFields.loc['# of Visits'].values[0:]
+                self.costs  = insuranceFields.loc['Cost per Visit'].values[0:]
+                self.drugs  = insuranceFields.loc['Pharmacy'].values[0]
 
-                visitFields = pd.read_excel(self.file,self.healthCareSheet,header=None,index_col=0,skiprows=5,nrows=3,names=None).iloc[:,1:]
-                self.visits = visitFields.loc['# of Visits'].values[0:]
-                self.costs  = visitFields.loc['Cost per Visit'].values[0:]
-                self.drugs  = visitFields.loc['Pharmacy'].values[0]
-
-                self.hsaOpt = pd.read_excel(self.file,self.healthCareSheet,header=None,skiprows=9,usecols='C',nrows=1).iloc[0,0]
+                self.hsaOpt = insuranceFields.loc['HSA'].values[0]
                 
                 self.total = []
             
@@ -273,19 +292,17 @@ class Vars():
                 
                 self.allocation = pd.read_excel(self.file,self.holidaySheet,header=None,skiprows=12,usecols='B',nrows=1).iloc[0,0]
 
-                familyFields = pd.read_excel(self.file,self.holidaySheet,header=None,index_col=0,skiprows=1,nrows=2,names=None).iloc[:,1:]
-                self.familyBday = familyFields.loc['Family Birthday'].values[0]
-                self.familyXmas = familyFields.loc['Family Holidays'].values[0]
+                holidayFields = pd.read_excel(self.file,self.holidaySheet,header=None,index_col=0,skiprows=1,nrows=11,names=None).iloc[:,1:]
+                self.familyBday = holidayFields.loc['Family Birthday'].values[0]
+                self.familyXmas = holidayFields.loc['Family Holidays'].values[0]
                 
-                childrenFields = pd.read_excel(self.file,self.holidaySheet,header=None,index_col=0,skiprows=4,nrows=2,names=None).iloc[:,1:]
-                self.childBday = childrenFields.loc['Children Birthday'].values[0]
-                self.childXmas = childrenFields.loc['Children Holidays'].values[0]
+                self.childBday = holidayFields.loc['Children Birthday'].values[0]
+                self.childXmas = holidayFields.loc['Children Holidays'].values[0]
                 
-                personalFields = pd.read_excel(self.file,self.holidaySheet,header=None,index_col=0,skiprows=7,nrows=4,names=None).iloc[:,1:]
-                self.persBday   = personalFields.loc['Personal Birthday'].values[0]
-                self.persXmas   = personalFields.loc['Personal Holidays'].values[0]
-                self.persVal    = personalFields.loc['Personal Valentines'].values[0]
-                self.persAnniv  = personalFields.loc['Personal Anniversary'].values[0]
+                self.persBday   = holidayFields.loc['Personal Birthday'].values[0]
+                self.persXmas   = holidayFields.loc['Personal Holidays'].values[0]
+                self.persVal    = holidayFields.loc['Personal Valentines'].values[0]
+                self.persAnniv  = holidayFields.loc['Personal Anniversary'].values[0]
                 
                 self.total = []        
         

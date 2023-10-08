@@ -14,7 +14,7 @@ class Savings:
         self.ages = vars.base.ages
 
         self.isKids = vars.children.isKids
-        self.childYrs = vars.children.childYrs
+        self.childBaseAges = vars.children.childBaseAges
         
         self.netCash = vars.taxes.netCash
         self.numAccounts = len(vars.accounts.__dict__.items())
@@ -123,7 +123,7 @@ class Savings:
                 # Remove college
                 match accName.upper():
                     case 'COLLEGE529':
-                        if j > max(self.childYrs) and self.isKids[j] == 0:
+                        if j > -max(self.childBaseAges) and self.isKids[j] == 0:
                             remainVal = self.savings[accName][j]
                             self.savings[accName][j] = 0
                             self.savings['longTermSavings'][j] += remainVal
@@ -159,7 +159,7 @@ class Savings:
                 #         self.savings = self.withdrawal.savings
                 
                 # Remove 529 Excess
-                # if j > max(self.childYrs) and self.isKids[j] == 0:
+                # if j > max(self.childBaseAges) and self.isKids[j] == 0:
                 #     self.withdrawal = self.overFlow(self.savings,j,7,8,0) # College to Long-Term (Excess)
                 #     self.savings = self.withdrawal.savings 
     

@@ -56,7 +56,7 @@ class TaxDict:
             class Itemized:
                 def __init__(self):
                     # Max per couple OR individual
-                    self.maxSlp = 10000 
+                    self.maxSalt = 10000 
                     self.maxHouse = 750000
             
             class Standard:

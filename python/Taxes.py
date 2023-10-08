@@ -16,7 +16,7 @@ class Taxes:
 
         self.income = vars.salary.income
         self.salary = vars.salary.salary
-        self.inflation = vars.salary.inflation
+        self.inflation = vars.salary.summedInflation
         self.childInflation = vars.children.childInflation
         
         self.ssIns = vars.benefits.socialSecurity.ssIns
@@ -118,31 +118,15 @@ class Taxes:
         
         for i in range(self.iters):
             retire = self.retAges[i] - self.baseAges[i]
-            hsaExp = health.hsa
-            fsaExp = health.fsa
-            hraExp = health.hra
-            
-            medicalPremExp = health.medicalPrem
-            visionPremExp  = health.visionPrem
-            dentalPremExp  = health.dentalPrem
-
             for j in range(retire):
                 """INFLATION"""
-                hsaExp *= 1 + self.inflation[j] 
-                fsaExp *= 1 + self.inflation[j] 
-                hraExp *= 1 + self.inflation[j] 
+                hsa[i,j] = (health.hsa * self.inflation[j]) * (1 + self.childInflation[j])
+                fsa[i,j] = (health.fsa * self.inflation[j]) * (1 + self.childInflation[j])
+                hra[i,j] = (health.hra * self.inflation[j]) * (1 + self.childInflation[j])
 
-                medicalPremExp *= 1 + self.inflation[j] 
-                visionPremExp  *= 1 + self.inflation[j] 
-                dentalPremExp  *= 1 + self.inflation[j]
-
-                hsa[i,j] = hsaExp * (1 + self.childInflation[j])
-                fsa[i,j] = fsaExp * (1 + self.childInflation[j])
-                hra[i,j] = hraExp * (1 + self.childInflation[j])
-
-                medicalPrem[i,j] = medicalPremExp * (1 + self.childInflation[j])
-                visionPrem[i,j]  = visionPremExp * (1 + self.childInflation[j])
-                dentalPrem[i,j]  = dentalPremExp * (1 + self.childInflation[j])
+                medicalPrem[i,j] = (health.medicalPrem * self.inflation[j]) * (1 + self.childInflation[j])
+                visionPrem[i,j]  = (health.visionPrem * self.inflation[j]) * (1 + self.childInflation[j])
+                dentalPrem[i,j]  = (health.dentalPrem * self.inflation[j]) * (1 + self.childInflation[j])
 
         # Post-retirement
 
@@ -158,7 +142,7 @@ class Taxes:
             for j in range(self.years):
                 ret401Perc[i,j] = retirement.basePerc
         
-        contribution =  np.multiply(ret401Perc,self.salary)
+        contribution = np.multiply(ret401Perc,self.salary)
         self.perc401 = np.sum((self.perc401,ret401Perc),0)
         self.cont401 = np.sum((self.cont401,contribution),0)
 
@@ -229,15 +213,15 @@ class Taxes:
                 # FEDERAL
                 # SLP Taxes
                 if len(saltTaxes) > 0:
-                    slpDed[i,j] = itemDed.maxSlp / self.iters if saltTaxes[i,j] > itemDed.maxSlp / self.iters else saltTaxes[i,j]
+                    slpDed[i,j] = (self.inflation[j] * itemDed.maxSalt) / self.iters if saltTaxes[i,j] > (self.inflation[j] * itemDed.maxSalt) / self.iters else saltTaxes[i,j]
                 else:
                     slpDed[i,j] = 0
                 
                 # Mortgage Interest
-                if house.houseBal[j] < itemDed.maxHouse / self.iters:
+                if house.houseBal[j] < (self.inflation[j] * itemDed.maxHouse) / self.iters:
                     mortInt[i,j] = house.houseInt[j] / self.iters
                 else:
-                    mortInt[i,j] = ((house.houseInt[j] / house.houseBal[j]) * itemDed.maxHouse) / self.iters
+                    mortInt[i,j] = ((house.houseInt[j] / house.houseBal[j]) * (self.inflation[j] * itemDed.maxHouse)) / self.iters
                 
                 # Charitable Donations
                 charDon[i,j] = charity.total[j] / self.iters
@@ -258,7 +242,7 @@ class Taxes:
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
-                self.stdDedFed[i,j] = (dedFed.maxFed * self.numInd) / self.iters
+                self.stdDedFed[i,j] = ((self.inflation[j] * dedFed.maxFed) * self.numInd) / self.iters
                 
                 # STATE
                 match self.filingState[i]:
@@ -307,15 +291,15 @@ class Taxes:
                                 childExempt = self.taxes.state.nj.exemptions.childExempt.single                   
                                 
                         for k in range(len(persExempt.bracketMax)):
-                            if self.income[i][j] < persExempt.bracketMax[k]:
-                                self.persExemptState[i,j] = persExempt.bracketAmt[k]                                
+                            if self.income[i][j] < (self.inflation[j] * persExempt.bracketMax[k]):
+                                self.persExemptState[i,j] = (self.inflation[j] * persExempt.bracketAmt[k])                               
                                 break
                         
                         for childAge in self.childAges:
                             if childAge[j] > 0 and childAge[j] <= self.maxChildYr:
                                 for k in range(len(childExempt.bracketMax)):
-                                    if self.income[i][j] < childExempt.bracketMax[k]:
-                                        self.childExemptState[i,j] += childExempt.bracketAmt[k] / self.iters
+                                    if self.income[i][j] < (self.inflation[j] * childExempt.bracketMax[k]):
+                                        self.childExemptState[i,j] += (self.inflation[j] * childExempt.bracketAmt[k]) / self.iters
                                         break
                     
                     case "MD":
@@ -334,15 +318,15 @@ class Taxes:
                                 childExempt = self.taxes.state.md.exemptions.childExempt.single
                         
                         for k in range(len(persExempt.bracketMax)):
-                            if self.income[i][j] < persExempt.bracketMax[k]:
-                                self.persExemptState[i,j] = persExempt.bracketAmt[k]
+                            if self.income[i][j] < (self.inflation[j] * persExempt.bracketMax[k]):
+                                self.persExemptState[i,j] = (self.inflation[j] * persExempt.bracketAmt[k])
                                 break
                         
                         for childAge in self.childAges:
                             if childAge[j] > 0 and childAge[j] <= self.maxChildYr:
                                 for k in range(len(childExempt.bracketMax)):
-                                    if self.income[i][j] < childExempt.bracketMax[k]:
-                                        self.childExemptState[i,j] += childExempt.bracketAmt[k] / self.iters
+                                    if self.income[i][j] < (self.inflation[j] * childExempt.bracketMax[k]):
+                                        self.childExemptState[i,j] += (self.inflation[j] * childExempt.bracketAmt[k]) / self.iters
                                         break
                     
                     case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY":
@@ -418,7 +402,7 @@ class Taxes:
                         case "JOINT":     state = self.taxes.state.md.state.joint
                         case "SEPARATE":  state = self.taxes.state.md.state.separate
                         case "SINGLE":    state = self.taxes.state.md.state.single
-                        case _:          state = self.taxes.state.md.state.single # Assume Single
+                        case _:           state = self.taxes.state.md.state.single # Assume Single
 
                     local = self.taxes.state.md.local
                 case "AK", "FL", "NV", "NH", "SD", "TN", "TX", "WA", "WY":
@@ -432,7 +416,7 @@ class Taxes:
                 maxBracket = 0
                 for k in range(len(state.bracketMax)):
                     minBracket = maxBracket
-                    maxBracket = state.bracketMax[k]
+                    maxBracket = (self.inflation[j] * state.bracketMax[k])
                     rateBracket = state.bracketPerc[k]
                     
                     if grossIncomeState[i,j] > maxBracket:
@@ -478,7 +462,7 @@ class Taxes:
                 maxBracket = 0
                 for k in range(len(federal.bracketMax)):
                     minBracket = maxBracket
-                    maxBracket = federal.bracketMax[k]
+                    maxBracket = (self.inflation[j] * federal.bracketMax[k])
                     rateBracket = federal.bracketPerc[k]
                     
                     if grossIncomeFed[i,j] > maxBracket:
@@ -487,17 +471,17 @@ class Taxes:
                         fedTax[i,j] += (grossIncomeFed[i,j] - minBracket) * rateBracket
                 
                 # SS Tax
-                if grossIncomeFed[i,j] < socialSecurity.maxSal:
+                if grossIncomeFed[i,j] < (self.inflation[j] * socialSecurity.maxSal):
                     ficaTax[i,j] += grossIncomeFed[i,j] * socialSecurity.rate
                 else:
-                    ficaTax[i,j] += socialSecurity.maxSal * socialSecurity.rate
+                    ficaTax[i,j] += (self.inflation[j] * socialSecurity.maxSal) * socialSecurity.rate
                 
                 # Medicare Tax
-                if grossIncomeFed[i,j] < medicare.maxSal:
+                if grossIncomeFed[i,j] < (self.inflation[j] * medicare.maxSal):
                     ficaTax[i,j] += grossIncomeFed[i,j] * medicare.rate
                 else:
-                    ficaTax[i,j] += medicare.maxSal * medicare.rate
-                    ficaTax[i,j] += (grossIncomeFed[i,j] - medicare.maxSal) * medicare.addRate
+                    ficaTax[i,j] += (self.inflation[j] * medicare.maxSal) * medicare.rate
+                    ficaTax[i,j] += (grossIncomeFed[i,j] - (self.inflation[j] * medicare.maxSal)) * medicare.addRate
 
         return fedTax, ficaTax
     
