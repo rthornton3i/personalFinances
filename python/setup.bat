@@ -1,4 +1,4 @@
 python -m venv .venv
 ".venv/Scripts/activate.bat"
-pip install --upgrade pip
+python -m pip install --upgrade -r requirements.pip.txt
 pip install -r requirements.txt
