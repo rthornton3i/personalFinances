@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 class Loans:
     def __init__(self, vars):
@@ -6,6 +7,7 @@ class Loans:
         self.years = vars.base.years
     
     def run(self):
+        """GENERAL LOANS"""
         self.loanBal  = np.zeros(self.years)
         self.loanPay  = np.zeros(self.years)
         self.loanPrn  = np.zeros(self.years)
@@ -13,7 +15,26 @@ class Loans:
         self.loanWth  = np.zeros(self.years)
         self.loanDwn  = np.zeros(self.years)
 
+        loan = self.vars.loans
+        for i in range(loan.numLoans):
+            [loan.loanBal, 
+             loan.loanPay, 
+             loan.loanPrn, 
+             loan.loanInt, 
+             _, 
+             _]  = self.loanCalc(loan.loanSummary.loanYr[i],
+                                 loan.loanSummary.term[i],
+                                 loan.loanSummary.rate[i],
+                                 loan.loanSummary.prin[i])
+            
         """HOUSING LOANS"""
+        self.loanBal  = np.zeros(self.years)
+        self.loanPay  = np.zeros(self.years)
+        self.loanPrn  = np.zeros(self.years)
+        self.loanInt  = np.zeros(self.years)
+        self.loanWth  = np.zeros(self.years)
+        self.loanDwn  = np.zeros(self.years)
+
         house = self.vars.expenses.house
         for i in range(house.numHouses):
             sellPrev = False if i == 0 else True
@@ -23,16 +44,18 @@ class Loans:
              house.housePrn, 
              house.houseInt, 
              house.houseWth, 
-             house.houseDwn]  = self.loanCalc(house.houseSummary.purYr[i], \
-                                            house.houseSummary.sellYr[i], \
-                                            house.houseSummary.term[i], \
-                                            house.houseSummary.rate[i], \
-                                            house.houseSummary.prin[i], \
-                                            house.houseSummary.down[i], \
-                                            house.houseSummary.app[i], \
-                                            sellPrev)
-        
-        """RESET VARS"""
+             house.houseDwn]  = self.loanCalc(house.houseSummary.purYr[i],
+                                              house.houseSummary.term[i],
+                                              house.houseSummary.rate[i],
+                                              house.houseSummary.prin[i],
+                                              house.houseSummary.sellYr[i],
+                                              house.houseSummary.down[i],
+                                              house.houseSummary.app[i],
+                                              sellPrev)
+        # plt.plot(house.houseWth)
+        # plt.show()
+
+        """CAR LOANS"""
         self.loanBal  = np.zeros(self.years)
         self.loanPay  = np.zeros(self.years)
         self.loanPrn  = np.zeros(self.years)
@@ -40,7 +63,6 @@ class Loans:
         self.loanWth  = np.zeros(self.years)
         self.loanDwn  = np.zeros(self.years)
         
-        """CAR LOANS"""
         cars = self.vars.expenses.cars
         for i in range(cars.numCars):        
             [cars.carBal, 
@@ -48,27 +70,44 @@ class Loans:
              cars.carPrn, 
              cars.carInt, 
              cars.carWth, 
-             cars.carDwn]  = self.loanCalc(cars.carSummary.purYr[i], \
-                                            cars.carSummary.sellYr[i], \
-                                            cars.carSummary.term[i], \
-                                            cars.carSummary.rate[i], \
-                                            cars.carSummary.prin[i], \
-                                            cars.carSummary.down[i], \
-                                            cars.carSummary.app[i])
+             cars.carDwn]  = self.loanCalc(cars.carSummary.purYr[i],
+                                           cars.carSummary.term[i],
+                                           cars.carSummary.rate[i],
+                                           cars.carSummary.prin[i],
+                                           cars.carSummary.sellYr[i],
+                                           cars.carSummary.down[i],
+                                           cars.carSummary.app[i])
         
         return self.vars
     
-    def loanCalc(self,purYr, sellYr, term, rate, prin, down, app, sellPrev=False):
-        # Up to 1 house from previous year and 1 previous balance/worth
+    def loanCalc(self,
+                 purYr, term, rate, prin, 
+                 sellYr=None, down=None, app=None, 
+                 sellPrev=False):
+        """
+        INPUTS
+            purYr - purchase year
+            term - (years) length of loan 
+            rate - (%) annual interest rate
+            prin - principal loan amount
+
+            sellYr - [OPT] sell year
+            down - [OPT] (%) down payment based on initial principal
+            app - [OPT] (%) annual appreciation
+
+            sellPrev - [OPT] (bool) selling previous loan
+        """
         
+        """INITIALIZE LOAN VALUES"""
         rate /= 12
-        app /= 12
         term *= 12
+        app = app / 12 if not app is None else 0
 
         purYr = int(purYr)
-        sellYr = int(sellYr)
+        sellYr = int(sellYr) if not sellYr is None else -1
         
-        downPay = down * prin
+        downPay = down * prin if not down is None else 0
+
         prinPay = prin - self.loanWth[purYr-1] + self.loanBal[purYr-1] if sellPrev else prin
         prinPay = 0 if prinPay < downPay else prinPay - downPay
         
