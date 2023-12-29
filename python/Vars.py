@@ -1,10 +1,15 @@
 import pandas as pd
+import numpy as np
 
 class Inputs():
     file = 'Inputs.xlsx'
 
     """BASE"""
     inputSheet = 'Inputs'
+    salarySheet = 'Salary'
+
+    """LOANS"""
+    loanSheet = 'Loans'
 
     """ALLOCATIONS"""
     allocationsSheet = 'Allocations'
@@ -27,6 +32,12 @@ class Inputs():
     majorSheet = 'Major'
     randomSheet = 'Random'
 
+def dropnan(vals):
+    return vals[~pd.isna(vals)]
+
+def getValue(file,sheet,row,col):
+    return pd.read_excel(file,sheet,header=None,skiprows=row-1,usecols=col,nrows=1).iloc[0,0]
+
 class Vars():
     def __init__(self):
         self.base = self.Base()
@@ -34,27 +45,25 @@ class Vars():
         self.filing = self.Filing()
         self.children = self.Children()
         
+        self.loans = self.Loans()
         self.expenses = self.Expenses()  
         
         self.benefits = self.Benefits()
         self.taxes = self.Taxes()
         self.savings = self.Savings()
         self.accounts = self.Accounts()
-    
+
     class Base(Inputs):
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=24,names=None)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C:D',nrows=26,names=None)
             
             self.loops = inputFields.loc['Iterations'].values[0]
             self.years = inputFields.loc['Years'].values[0]
 
-            self.baseAges = inputFields.loc['Ages'].values[0:2]
-            self.retAges  = inputFields.loc['Retirement Age'].values[0:2]
-            
-            self.ages = []
-            self.isRetire = []
+            self.baseAges = inputFields.loc['Ages'].values[0:].astype(int)
+            self.retAges  = inputFields.loc['Retirement Age'].values[0:].astype(int)
             
             self.numInd = len(self.baseAges)
     
@@ -62,21 +71,20 @@ class Vars():
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=24,names=None)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=26,names=None)
             
             self.filingType  = inputFields.loc['Filing'].values[0]
-            self.filingState = inputFields.loc['Filing State'].values[0:2]
-            
-            self.iters = []
+            self.filingState = inputFields.loc['Filing State'].values[0]
     
     class Salary(Inputs):
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=24,names=None).drop(columns=1)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=26,names=None).drop(columns=1)
 
-            self.salBase = inputFields.loc['Salary'].values[0:2]
-            self.prevSal = [inputFields.loc['Previous Salary (#1)'].values[0:],inputFields.loc['Previous Salary (#2)'].values[0:]]
+            self.salOpt  = dropnan(inputFields.loc['Salary Option'].values[0:])
+            self.salBase = dropnan(inputFields.loc['Salary'].values[0:])
+            self.prevSal = [dropnan(inputFields.loc['Previous Salary (#1)'].values[0:]),dropnan(inputFields.loc['Previous Salary (#2)'].values[0:])]
 
             self.salGrowth = inputFields.loc['Salary Growth'].values[0:3]
             self.salBonus  = inputFields.loc['Bonus'].values[0:3]
@@ -86,27 +94,28 @@ class Vars():
 
             self.wageInd = inputFields.loc['Inflation Average'].values[0]
             self.wageDev = inputFields.loc['Inflation Std Dev'].values[0]
-            
-            self.salary = []
-            self.income = []
-            self.grossIncome = []  
-            self.inflation = []
-            self.summedInflation = []
+
+            self.salCustom = pd.read_excel(self.file,self.salarySheet,header=None,skiprows=1,index_col=0,names=None) if any([opt.upper() == 'CUSTOM' for opt in self.salOpt]) else None
     
     class Children(Inputs):
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=24,names=None)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=26,names=None).drop(columns=1)
 
-            self.childBaseAges          = inputFields.loc['Child Ages'].values[0:]
+            self.childBaseAges     = dropnan(inputFields.loc['Child Ages'].values[0:]).astype(int)
             self.maxChildYr        = inputFields.loc['Max Age of Childcare'].values[0]
             self.childInflationVal = inputFields.loc['Child Inflation'].values[0]
-            
-            self.childAges = []
-            self.childInflation = []
-            self.isKids = []
-    
+
+    class Loans(Inputs):
+        def __init__(self):
+            super().__init__()
+
+            self.loanSummary = pd.read_excel(self.file,self.loanSheet,header=1,usecols='A:D',
+                                             names=['loanYr','prin','term','rate']).dropna()
+
+            self.numLoans = self.loanSummary.shape[0]
+
     class Expenses:
         def __init__(self):
             self.cars = self.Cars()
@@ -126,37 +135,21 @@ class Vars():
             self.vacation = self.Vacation()
             self.major = self.Major()
             self.random = self.Random()
-            
-            self.totalExp = []
-            self.totalExpenses = []
-            
-            self.numExpenses = 13
         
         class Cars(Inputs):
             def __init__(self):
                 super().__init__()
 
                 self.carSummary = pd.read_excel(self.file,self.carSheet,header=1,usecols='A:G',
-                                                names=['purYr','sellYr','prin','down','app','term','rate']).dropna()
+                                                names=['purYr','sellYr','prin','down','app','term','rate']).dropna().reset_index(drop=True)
                 
-                self.allocation = pd.read_excel(self.file,self.carSheet,header=None,skiprows=7,usecols='J',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.carSheet,row=7,col='J')
 
-                carFields = pd.read_excel(self.file,self.carSheet,header=None,index_col=0,skiprows=1,usecols='I,K:M',nrows=5,names=None)
+                carFields = pd.read_excel(self.file,self.carSheet,header=None,index_col=0,skiprows=1,usecols='I,K:M',nrows=4,names=None)
                 self.insurance  = carFields.loc['Insurance'].values[0]
                 self.repairs    = carFields.loc['Repairs'].values[0:]
                 self.fuel       = carFields.loc['Fuel'].values[0]
                 self.ezpass     = carFields.loc['EZ Pass'].values[0]
-
-                self.preBal = carFields.loc['Previous Balance'].values[0]
-
-                self.carBal = []
-                self.carPay = []
-                self.carPrn = []
-                self.carInt = []
-                self.carWth = []
-                self.carDwn = []
-                
-                self.total = []
 
                 self.numCars = self.carSummary.shape[0]
 
@@ -174,8 +167,6 @@ class Vars():
                 self.electricity = 140
                 self.gas = 20      
                 self.water = 40
-                
-                self.total = []
             
         class House(Inputs):
             def __init__(self):
@@ -184,7 +175,7 @@ class Vars():
                 self.houseSummary = pd.read_excel(self.file,self.homeSheet,header=1,usecols='A:G',
                                             names=['purYr','sellYr','prin','down','app','term','rate']).dropna()
             
-                self.allocation = pd.read_excel(self.file,self.homeSheet,header=None,skiprows=9,usecols='J',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.homeSheet,row=10,col='J')
 
                 homeFields = pd.read_excel(self.file,self.homeSheet,header=None,index_col=0,skiprows=1,usecols='I,K:M',nrows=7,names=None)
                 self.propTax        = homeFields.loc['Property Tax'].values[0]
@@ -193,17 +184,7 @@ class Vars():
                 self.electricity    = homeFields.loc['Electricity'].values[0]
                 self.gas            = homeFields.loc['Gas'].values[0]
                 self.water          = homeFields.loc['Water'].values[0]
-
-                self.preBal = homeFields.loc['Previous Balance'].values[0]
-
-                self.houseBal = []
-                self.housePay = []
-                self.housePrn = []
-                self.houseInt = []
-                self.houseWth = []
-                self.houseDwn = []
-                
-                self.total = []
+                self.sewage         = homeFields.loc['Sewage'].values[0]
                         
                 self.numHouses = self.houseSummary.shape[0]
             
@@ -211,88 +192,76 @@ class Vars():
             def __init__(self):
                 super().__init__()
 
-                self.allocation = pd.read_excel(self.file,self.foodSheet,header=None,skiprows=7,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.foodSheet,row=2,col='F')
 
-                foodFields = pd.read_excel(self.file,self.foodSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=5,names=None)
+                foodFields = pd.read_excel(self.file,self.foodSheet,header=None,index_col=0,skiprows=1,usecols='A,C',names=None)
                 self.groceries      = foodFields.loc['Groceries'].values[0]
                 self.restaurants    = foodFields.loc['Restaurants'].values[0]
-                self.alcohol        = foodFields.loc['Alcohol'].values[0]
-                self.fastFood       = foodFields.loc['Fast Food'].values[0]
-                self.workFood       = foodFields.loc['Work Food'].values[0]
-                
-                self.total = []
+                self.otherFood      = np.sum([cost.values[0] if not (foodType == 'Groceries' or foodType == 'Restaurants') else 0 for foodType,cost in foodFields.iterrows()])
         
         class Entertain(Inputs):
             def __init__(self):
                 super().__init__()
 
-                self.allocation = pd.read_excel(self.file,self.entertainSheet,header=None,skiprows=7,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.entertainSheet,row=8,col='B')
 
-                entertainFields = pd.read_excel(self.file,self.entertainSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).iloc[:,1:]
+                entertainFields = pd.read_excel(self.file,self.entertainSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).drop(columns=1)
                 self.internet       = entertainFields.loc['Internet'].values[0]
                 self.phone          = entertainFields.loc['Phone'].values[0]
-                self.tv             = entertainFields.loc['TV'].values[0:]
-                self.software       = entertainFields.loc['Software'].values[0:]
-                self.memberships    = entertainFields.loc['Memberships'].values[0:]
-                
-                self.total = []
+                self.tv             = dropnan(entertainFields.loc['TV'].values[0:])
+                self.software       = dropnan(entertainFields.loc['Software'].values[0:])
+                self.memberships    = dropnan(entertainFields.loc['Memberships'].values[0:])
             
         class PersonalCare(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.personalCareSheet,header=None,skiprows=7,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.personalCareSheet,row=8,col='B')
 
-                personalCareFields = pd.read_excel(self.file,self.personalCareSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).iloc[:,1:]
+                personalCareFields = pd.read_excel(self.file,self.personalCareSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).drop(columns=1)
                 self.clothing   = personalCareFields.loc['Clothing'].values[0]
                 self.shoes      = personalCareFields.loc['Shoes'].values[0]
                 self.hair       = personalCareFields.loc['Hair'].values[0]
                 self.makeup     = personalCareFields.loc['Makeup'].values[0]
                 self.products   = personalCareFields.loc['Products'].values[0]
-                
-                self.total = []
         
         class Healthcare(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.healthCareSheet,header=None,skiprows=11,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.healthCareSheet,row=12,col='B')
 
-                insuranceFields = pd.read_excel(self.file,self.healthCareSheet,header=None,index_col=0,skiprows=1,nrows=9,names=None).iloc[:,1:]
-                self.deductible     = insuranceFields.loc['Deductible'].values[0:]
-                self.coinsurance    = insuranceFields.loc['Coinsurance'].values[0:]
-                self.maxOOP         = insuranceFields.loc['Max Out-of-Pocket'].values[0:]
+                insuranceFields = pd.read_excel(self.file,self.healthCareSheet,header=None,index_col=0,skiprows=1,nrows=9,names=None).drop(columns=1)
+                self.deductible     = dropnan(insuranceFields.loc['Deductible'].values[0:])
+                self.coinsurance    = dropnan(insuranceFields.loc['Coinsurance'].values[0:])
+                self.maxOOP         = dropnan(insuranceFields.loc['Max Out-of-Pocket'].values[0:])
                 
-                self.visits = insuranceFields.loc['# of Visits'].values[0:]
-                self.costs  = insuranceFields.loc['Cost per Visit'].values[0:]
+                self.visits = insuranceFields.loc['# of Visits'].values[0:3]
+                self.costs  = insuranceFields.loc['Cost per Visit'].values[0:3]
                 self.drugs  = insuranceFields.loc['Pharmacy'].values[0]
 
-                self.hsaOpt = insuranceFields.loc['HSA'].values[0]
-                
-                self.total = []
+                self.hsaOpt = insuranceFields.loc['HSA'].values[0]\
             
         class Pet(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.petSheet,header=None,skiprows=7,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.petSheet,row=8,col='B')
 
-                petFields = pd.read_excel(self.file,self.petSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).iloc[:,1:]
+                petFields = pd.read_excel(self.file,self.petSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).drop(columns=1)
                 self.food       = petFields.loc['Food'].values[0]
                 self.essentials = petFields.loc['Essentials'].values[0]
                 self.toys       = petFields.loc['Toys'].values[0]
                 self.careTaker  = petFields.loc['Caretaker'].values[0]
                 self.vet        = petFields.loc['Vet'].values[0]
-                
-                self.total = []
         
         class Holiday(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.holidaySheet,header=None,skiprows=12,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.holidaySheet,row=13,col='B')
 
-                holidayFields = pd.read_excel(self.file,self.holidaySheet,header=None,index_col=0,skiprows=1,nrows=11,names=None).iloc[:,1:]
+                holidayFields = pd.read_excel(self.file,self.holidaySheet,header=None,index_col=0,skiprows=1,nrows=11,names=None).drop(columns=1)
                 self.familyBday = holidayFields.loc['Family Birthday'].values[0]
                 self.familyXmas = holidayFields.loc['Family Holidays'].values[0]
                 
@@ -303,75 +272,62 @@ class Vars():
                 self.persXmas   = holidayFields.loc['Personal Holidays'].values[0]
                 self.persVal    = holidayFields.loc['Personal Valentines'].values[0]
                 self.persAnniv  = holidayFields.loc['Personal Anniversary'].values[0]
-                
-                self.total = []        
         
         class Charity(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.charitySheet,header=None,skiprows=3,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.charitySheet,row=4,col='B')
 
-                charityFields = pd.read_excel(self.file,self.charitySheet,header=None,index_col=0,skiprows=1,nrows=1,names=None).iloc[:,1:]
+                charityFields = pd.read_excel(self.file,self.charitySheet,header=None,index_col=0,skiprows=1,nrows=1,names=None).drop(columns=1)
                 self.baseChar = charityFields.loc['Donations'].values[0]
-                
-                self.total = []
-#         
         
         class Education(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.educationSheet,header=None,skiprows=6,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.educationSheet,row=7,col='B')
 
-                educationFields = pd.read_excel(self.file,self.educationSheet,header=None,index_col=0,skiprows=1,nrows=4,names=None).iloc[:,1:]
+                educationFields = pd.read_excel(self.file,self.educationSheet,header=None,index_col=0,skiprows=1,nrows=4,names=None).drop(columns=1)
                 self.tuition    = educationFields.loc['Tuition'].values[0]
                 self.housing    = educationFields.loc['Housing'].values[0]
                 self.dining     = educationFields.loc['Dining'].values[0]
                 self.books      = educationFields.loc['Books'].values[0]
-                
-                self.total = []
         
         class Vacation(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.vacationSheet,header=None,skiprows=9,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.vacationSheet,row=10,col='B')
 
-                vacationFields = pd.read_excel(self.file,self.vacationSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).iloc[:,1:]
-                self.travel     = vacationFields.loc['Travel'].values[0]
-                self.hotel      = vacationFields.loc['Hotel'].values[0]
+                vacationFields = pd.read_excel(self.file,self.vacationSheet,header=None,index_col=0,skiprows=1,nrows=5,names=None).drop(columns=1)
+                self.travel     = vacationFields.loc['Travel'].values[0:3]
+                self.hotel      = vacationFields.loc['Hotel'].values[0:3]
                 self.food       = vacationFields.loc['Food'].values[0]
                 self.events     = vacationFields.loc['Events'].values[0]
                 self.carRental  = vacationFields.loc['Rental'].values[0]
                 
                 self.numDays = pd.read_excel(self.file,self.vacationSheet,header=None,skiprows=7,usecols='C:E',nrows=1).iloc[0].values
-                
-                self.total = []
         
         class Major(Inputs):
             def __init__(self):
                 super().__init__()
                 
                 self.majorSummary = pd.read_excel(self.file,self.majorSheet,header=1,usecols='A,C',
-                                                names=['purYr','cost']).dropna()
+                                                  names=['purYr','cost']).dropna()
                 
-                self.allocation = pd.read_excel(self.file,self.majorSheet,header=None,skiprows=1,usecols='F',nrows=1).iloc[0,0]
-
-                self.total = []
+                self.allocation = getValue(self.file,self.majorSheet,row=2,col='F')
         
         class Random(Inputs):
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = pd.read_excel(self.file,self.randomSheet,header=None,skiprows=5,usecols='B',nrows=1).iloc[0,0]
+                self.allocation = getValue(self.file,self.randomSheet,row=6,col='B')
 
-                randomFields = pd.read_excel(self.file,self.randomSheet,header=None,index_col=0,skiprows=1,nrows=3,names=None).iloc[:,1:]
+                randomFields = pd.read_excel(self.file,self.randomSheet,header=None,index_col=0,skiprows=1,nrows=3,names=None).drop(columns=1)
                 self.maxExp         = randomFields.loc['Max Cost'].values[0]
                 self.decayFactor    = randomFields.loc['Decay Factor'].values[0]
-                self.binWid         = randomFields.loc['Bin Width'].values[0]
-                
-                self.total = []
+                self.binWid         = randomFields.loc['Bin Width'].values[0]                
     
     class Benefits:
         def __init__(self):
@@ -425,9 +381,13 @@ class Vars():
                     self.contribution = []
                     self.withdrawal = []
             
-        class SocialSecurity:
+        class SocialSecurity(Inputs):
             def __init__(self):
-                self.collectionAge = [70,70]
+                super().__init__()
+
+                inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C:D',nrows=26,names=None)
+
+                self.collectionAge = dropnan(inputFields.loc['SS Collection Age'].values[0:])
                 
                 self.fullRetAge = 67
                 self.earlyRetAge = [5/900,5/1200]
@@ -508,7 +468,7 @@ class Vars():
             
             class LocalTax:
                 def __init__(self):
-                    self.localTax =[]            
+                    self.localTax = []            
 
             class Deductions:
                 def __init__(self):
@@ -545,6 +505,7 @@ class Vars():
 
             self.allocations = []
             self.earnings = []
+            self.expenses = []
     
     class Accounts(Inputs):
         def __init__(self):

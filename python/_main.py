@@ -9,78 +9,150 @@ from Taxes import Taxes
 from Savings import Savings
 
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import multiprocessing as mp
+from multiprocessing import Pool
+from time import time
+
+"""
+from typing import List
+def pick(l: List[int], index: int) -> int:
+    pass
+"""
 
 class Main:
     def __init__(self):
-        """
-        from typing import List
-        def pick(l: List[int], index: int) -> int:
-            pass
-        """
+        self.tic = time()
 
-        vars = Vars()
-        # totalExpenses = np.zeros((vars.expenses.numExpenses,vars.base.years))
-        # totalSavings = np.zeros((vars.accounts.numAccounts,vars.base.years))
+        self.vars = Vars()
+        self.taxDict = TaxDict()
+
+        setup = Setup(self.vars, self.taxDict)
+        self.vars = setup.run()
+
+        loans = Loans(self.vars)
+        self.vars = loans.run()
+
+        self.toc = time()
+        print('Initial setup done: ',str(self.toc-self.tic))
+
+        self.executeSingle()
+        # self.executeMulti()
+
+        self.toc = time()
+        print('Done: ',str(self.toc-self.tic))
+
+    def executeSingle(self):
+        outputs = self.loop()
+        self.totalSavings = []
+        for t in ['totalSavings','totalExpenses']:
+            total = pd.DataFrame()
+            for i,output in enumerate(outputs[t]):
+                self.totalSavings.append(np.sum(output.iloc[-1,:]))
+                if i == 0:
+                    total = output
+                else:
+                    total += output
+
+            if t == 'totalSavings':
+                self.avgTotalSavings = total / (self.vars.base.loops / mp.cpu_count())
+            else:
+                self.avgTotalExpenses = total / (self.vars.base.loops / mp.cpu_count()) 
+
+    def executeMulti(self):
+        def getTotal(summary):
+            total = 0
+            endVal = []
+            for i,val in enumerate(summary):
+                endVal.append(np.sum(val.iloc[-1,:]))
+
+                if i == 0:
+                    total = val
+                else:
+                    total += val
+
+            return total,endVal
         
-        for i in range(vars.base.loops):
-            vars = Vars()
-            taxDict = TaxDict()
-            """
-            Update to dataframes where appropriate
-            Change functions to have no return and use class vars
-            """
+        totalSavings = []
+        totalExpenses = []
+        with Pool(processes=mp.cpu_count()) as pool:
+            results = [pool.apply_async(self.loop) for _ in range(mp.cpu_count())]
 
-            setup = Setup(vars, taxDict)
-            vars = setup.run()
-            """
-            Get 401k totals for minimum distribution
-            """
+            pool.close()
+            pool.join()
 
-            loans = Loans(vars)
-            vars = loans.run()
-            """
-            Add function to autofill???
-            """
+            [r.wait() for r in results]
+            for r in results:
+                result = r.get()
+                totalSavings.extend(result['totalSavings'])
+                totalExpenses.extend(result['totalExpenses'])
 
-            expenses = Expenses(vars)
-            vars = expenses.run()
+        total,self.totalSavings = getTotal(totalSavings)
+        self.avgTotalSavings = total / self.vars.base.loops
+        total,_ = getTotal(totalExpenses)
+        self.avgTotalExpenses = total / self.vars.base.loops
+
+        self.avgTotalSavings.to_csv('Outputs/Savings.csv')      
+        self.avgTotalExpenses.to_csv('Outputs/Expenses.csv')      
+
+    def loop(self):
+        self.toc = time()
+        outputs = {}
+
+        totalExpenses = []
+        totalSavings = []
+
+        loops = int(np.ceil(self.vars.base.loops / mp.cpu_count()))
+        for i in range(loops):
+            expenses = Expenses(self.vars)
+            self.vars = expenses.run()
             """
             HSA values from healthcare expenses
             Add additional expenses (use Mint)
-            Add auto adjustments to car repair, fuel and insurance based on age and initial car cost
-                                    house repairs, insurance, and utilities based on initial house cost
-            Add single row extended down feature
-            Add "other" expenses
             """
 
-            taxes = Taxes(vars, taxDict)
-            vars = taxes.run()
+            savings = Savings(self.vars)
+            self.vars = savings.run()
+
+            taxes = Taxes(self.vars, self.taxDict)
+            self.vars = taxes.run()
             """
-            Add 401k and SS to income in retirement
             Add Medicare expenses to health
-            Add inflation assumption to deductions
             Account for std deduction when retired
             """
 
-            savings = Savings(vars)
-            vars = savings.run()
-            
-        #     totalExpenses = Utility.ArrayMath.sumArrays2D(totalExpenses,vars.expenses.totalExpenses)
-        #     totalSavings = Utility.ArrayMath.sumArrays2D(totalSavings,vars.savings.savings)
-        
-        # vars.expenses.totalExpenses = Utility.ArrayMath.avgArrays2D(totalExpenses,vars.base.loops)
-        # vars.savings.savings        = Utility.ArrayMath.avgArrays2D(totalSavings,vars.base.loops)
+            totalSavings.append(self.vars.savings.savings)
+            totalExpenses.append(self.vars.expenses.totalExpenses)
 
-        self.vars = vars
-        
-        # print("Net Worth: " + Utility.ArrayMath.sumArray2(vars.savings.savings,1)[vars.base.years-1])
-        
-#         Writer writer = new Writer(vars);
-#         writer.run();
-        
-        # print("Elapsed time was " + (double)((stopTime - startTime) / 1e9) + " seconds.")
+            print('Loop ',str(i+1),'/',str(loops),' done: ',str(time()-self.toc))
+            self.toc = time()
 
-main = Main()
-plt.show()
-print()
+        outputs['totalSavings'] = totalSavings
+        outputs['totalExpenses'] = totalExpenses
+
+        return outputs
+
+if __name__ == '__main__':
+    import pickle
+
+    main = Main()
+
+    with open('Inputs/main.pkl', 'wb') as file:
+        pickle.dump(main, file)
+    
+    # with open('Inputs/main.pkl', 'rb') as file:
+    #     main = pickle.load(file)
+
+    print(f'{np.sum(main.avgTotalSavings.iloc[-1,:]):,.0f}')
+
+    plt.figure()
+    n = len(main.avgTotalSavings.columns)
+    plt.plot(main.avgTotalSavings.iloc[:,-n:])    
+    plt.legend(main.avgTotalSavings.columns[-n:])
+    plt.plot(np.zeros((main.vars.base.years,1)),'--')
+    plt.show()
+
+    plt.figure()
+    plt.hist(main.totalSavings,bins=max(1,int(main.vars.base.loops/20)),rwidth=0.9)
+    plt.show()
