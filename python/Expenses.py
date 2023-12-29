@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 class Expenses:
@@ -12,45 +13,46 @@ class Expenses:
         self.income = vars.salary.income
         self.inflation = vars.salary.inflation
         
+        self.isKids = self.vars.children.isKids
         self.childAges = vars.children.childAges
         self.maxChildYr = vars.children.maxChildYr
         self.childInflation = vars.children.childInflation
     
     def run(self):
         exp =  self.vars.expenses
-        exp.rent.total = self.rentExp()
-        exp.house.total = self.housingExp()
-        exp.cars.total = self.carExp()
+        exps = [e for e in dir(exp) if not e.startswith('__') and not callable(getattr(exp, e)) and hasattr(getattr(exp,e),'allocation')]
+
+        exp.totalExpenses = pd.DataFrame(0,index=np.arange(self.years),columns=exps)
+
+        exp.totalExpenses.house += self.rentExp()
+        exp.totalExpenses.house += self.housingExp()
+        exp.totalExpenses.cars = self.carExp()
         
-        exp.food.total = self.foodExp()
-        exp.entertain.total = self.entExp()
-        exp.personalCare.total = self.personalExp()
-        exp.healthcare.total = self.healthExp()
-        exp.pet.total = self.petExp()
+        exp.totalExpenses.food = self.foodExp()
+        exp.totalExpenses.entertain = self.entExp()
+        exp.totalExpenses.personalCare = self.personalExp()
+        exp.totalExpenses.healthcare = self.healthExp()
+        exp.totalExpenses.pet = self.petExp()
         
-        exp.holiday.total = self.holidayExp()
-        exp.education.total = self.edExp()
-        exp.vacation.total = self.vacExp()
+        exp.totalExpenses.holiday = self.holidayExp()
+        exp.totalExpenses.education = self.edExp()
+        exp.totalExpenses.vacation = self.vacExp()
         
-        exp.charity.total = self.charExp()
-        exp.major.total = self.majExp()
-        exp.random.total = self.randExp()
+        exp.totalExpenses.charity = self.charExp()
+        exp.totalExpenses.major = self.majExp()
+        exp.totalExpenses.random = self.randExp()
+
+        exp.total = np.sum(exp.totalExpenses,axis=0)
+
+        # exps = [exp.rent,exp.house,exp.cars,exp.food,exp.entertain,exp.personalCare,exp.healthcare,exp.pet,exp.holiday,exp.education,exp.vacation,exp.charity,exp.major,exp.random]
+        # legend = ['rent','house','cars','food','entertain','personalCare','healthcare','pet','holiday','education','vacation','charity','major','random']
+        # for e in exps:
+        #     plt.plot(e.total)
+        # plt.legend(legend)
         
-        exp.totalExpenses = np.sum((exp.rent.total, \
-                                    exp.house.total, \
-                                    exp.cars.total, \
-                                    exp.food.total, \
-                                    exp.entertain.total, \
-                                    exp.personalCare.total, \
-                                    exp.healthcare.total, \
-                                    exp.pet.total, \
-                                    exp.holiday.total, \
-                                    exp.education.total, \
-                                    exp.vacation.total, \
-                                    exp.charity.total, \
-                                    exp.major.total, \
-                                    exp.random.total),0)
-        
+        # plt.plot(exp.totalExpenses)
+        # plt.show()
+
         return self.vars
     
     def rentExp(self):
@@ -74,14 +76,15 @@ class Expenses:
         total = np.zeros(self.years)
         
         firstYear = 0 if house.houseSummary.purYr[0] < 0 else house.houseSummary.purYr[0]
+        houseRatio = [house.houseWth[i] / house.houseWth[0] for i in range(firstYear,self.years)]
 
-        homeUtil = (house.electricity + house.gas + house.water) * 12
+        homeUtil = (house.electricity + house.gas + house.water + house.sewage) * 12
         for i in range(firstYear,self.years):
-            homeUtil *= 1 + self.inflation[i]
+            # homeUtil *= 1 + self.inflation[i]
 
             total[i] = house.housePay[i]
-            total[i] += np.random.triangular(house.repairs[0],house.repairs[1],house.repairs[2]) + house.insurance
-            total[i] += homeUtil
+            total[i] += (np.random.triangular(house.repairs[0],house.repairs[1],house.repairs[2]) + house.insurance) * houseRatio[i]
+            total[i] += homeUtil * houseRatio[i]
         
         total += house.houseDwn
 
@@ -91,11 +94,17 @@ class Expenses:
         cars = self.vars.expenses.cars
         
         total = np.zeros(self.years)
+
+        firstYear = 0 if cars.carSummary.purYr[0] < 0 else cars.carSummary.purYr[0]
+        carRatio = [cars.carWth[i] / cars.carWth[0] for i in range(firstYear,self.years)]
         
-        carExps = (cars.insurance + cars.ezpass + cars.fuel) * 12 + np.random.triangular(cars.repairs[0],cars.repairs[1],cars.repairs[2]) * 12        
+        carExps = (cars.insurance + cars.ezpass + cars.fuel) * 12
         for i in range(self.years):
-            carExps *= 1 + self.inflation[i]
-            total[i] = cars.carPay[i] + (carExps  * (1 + self.childInflation[i]))
+            # carExps *= 1 + self.inflation[i]
+
+            total[i] = cars.carPay[i]
+            total[i] += (np.random.triangular(cars.repairs[0],cars.repairs[1],cars.repairs[2]) * 12) * carRatio[i]    
+            total[i] += carExps * carRatio[i]
 
         total += cars.carDwn
 
@@ -106,7 +115,7 @@ class Expenses:
         
         total = np.zeros(self.years)
 
-        foodExps = (food.groceries + food.restaurants + food.alcohol + food.fastFood + food.workFood) * 12
+        foodExps = (food.groceries + food.restaurants + food.otherFood) * 12
         for i in range(self.years):
             foodExps *= 1 + self.inflation[i]
             total[i] = foodExps * (1 + self.childInflation[i])
@@ -212,9 +221,7 @@ class Expenses:
         childExps = holiday.childBday + holiday.childXmas
         for i in range(self.years):
             childExps *= 1 + self.inflation[i]
-            for j in range(len(self.childAges)):
-                if self.childAges[j,i] > 0 and self.childAges[j,i] < self.maxChildYr:
-                    childGift[i] = childExps
+            childGift[i] = childExps * self.isKids[i]
         
         holidayExps = (holiday.persBday + holiday.persXmas + holiday.persVal + holiday.persAnniv) * self.numInd
         for i in range(self.years):
@@ -241,10 +248,14 @@ class Expenses:
         vacation = self.vars.expenses.vacation
         
         total = np.zeros(self.years)
-        
-        numDays = np.random.triangular(vacation.numDays[0],vacation.numDays[1],vacation.numDays[2])
-        vacExp = vacation.travel + ((vacation.events + vacation.food) * numDays) + ((vacation.hotel + vacation.carRental) * numDays)
-        for i in range(self.years):            
+        for i in range(self.years):   
+            numDays = np.random.triangular(vacation.numDays[0],vacation.numDays[1],vacation.numDays[2])
+
+            hotel   = np.random.triangular(vacation.hotel[0],vacation.hotel[1],vacation.hotel[2]) * numDays
+            travel  = np.random.triangular(vacation.travel[0],vacation.travel[1],vacation.travel[2]) * self.numInd
+
+            vacExp = hotel + travel + ((vacation.events + vacation.food + vacation.carRental) * numDays)
+                 
             vacExp *= 1 + self.inflation[i]
             total[i] = vacExp * (1 + self.childInflation[i])
         
@@ -257,7 +268,7 @@ class Expenses:
         
         for i in range(self.iters):
             for j in range(self.years):
-                total[j] += charity.baseChar * self.income[i][j]
+                total[j] += charity.baseChar * self.income[i,j]
         
         return total
     
