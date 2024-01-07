@@ -12,6 +12,7 @@ class Expenses:
         
         self.income = vars.salary.income
         self.inflation = vars.salary.inflation
+        self.summedInflation = vars.salary.summedInflation
         
         self.isKids = self.vars.children.isKids
         self.childAges = vars.children.childAges
@@ -27,6 +28,7 @@ class Expenses:
         exp.totalExpenses.house += self.rentExp()
         exp.totalExpenses.house += self.housingExp()
         exp.totalExpenses.cars = self.carExp()
+        exp.totalExpenses.loans = self.loanExp()
         
         exp.totalExpenses.food = self.foodExp()
         exp.totalExpenses.entertain = self.entExp()
@@ -61,12 +63,14 @@ class Expenses:
         total = np.zeros(self.years)
         
         if len(rent.rentYr) > 0:
-            rentExp = (rent.baseRent + rent.rentFees) * 12
-            rentExp += (rent.repairs + rent.insurance + rent.electricity + rent.gas + rent.water) * 12
+            rentExp = (rent.baseRent + np.nansum(rent.rentFees)) * 12
+            rentExp += (rent.insurance + rent.electricity + rent.gas + rent.water) * 12
             
             for i in range(rent.rentYr[0],rent.rentYr[1]+1):
                 rentExp *= 1 + self.inflation[i]
+
                 total[i] = rentExp
+                total[i] += np.random.triangular(rent.repairs[0],rent.repairs[1],rent.repairs[2])
         
         return total
     
@@ -75,18 +79,30 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        firstYear = 0 if house.houseSummary.purYr[0] < 0 else house.houseSummary.purYr[0]
-        houseRatio = [house.houseWth[i] / house.houseWth[0] for i in range(firstYear,self.years)]
+        if house.numHouses > 0:
+            firstYear = int(0 if house.houseSummary.purYr[0] < 0 else house.houseSummary.purYr[0])
+            houseRatio = [0 if i < firstYear else house.houseWth[i] / house.houseWth[firstYear] for i in range(self.years)]
 
-        homeUtil = (house.electricity + house.gas + house.water + house.sewage) * 12
-        for i in range(firstYear,self.years):
-            # homeUtil *= 1 + self.inflation[i]
+            homeUtil = (house.electricity + house.gas + house.water + house.sewage) * 12
+            for i in range(firstYear,self.years):
+                # homeUtil *= 1 + self.inflation[i]
 
-            total[i] = house.housePay[i]
-            total[i] += (np.random.triangular(house.repairs[0],house.repairs[1],house.repairs[2]) + house.insurance) * houseRatio[i]
-            total[i] += homeUtil * houseRatio[i]
+                total[i] = house.housePay[i]
+                total[i] += (np.random.triangular(house.repairs[0],house.repairs[1],house.repairs[2]) + house.insurance) * houseRatio[i]
+                total[i] += homeUtil * houseRatio[i]
+            
+            total += house.houseDwn
+
+        return total
+    
+    def loanExp(self):
+        loan = self.vars.expenses.loans
         
-        total += house.houseDwn
+        total = np.zeros(self.years)
+
+        if loan.numLoans > 0:
+            for i in range(self.years):
+                total[i] = loan.loanPay[i]
 
         return total
     
@@ -95,18 +111,19 @@ class Expenses:
         
         total = np.zeros(self.years)
 
-        firstYear = 0 if cars.carSummary.purYr[0] < 0 else cars.carSummary.purYr[0]
-        carRatio = [cars.carWth[i] / cars.carWth[0] for i in range(firstYear,self.years)]
-        
-        carExps = (cars.insurance + cars.ezpass + cars.fuel) * 12
-        for i in range(self.years):
-            # carExps *= 1 + self.inflation[i]
+        if cars.numCars > 0:
+            firstYear = 0 if cars.carSummary.purYr[0] < 0 else cars.carSummary.purYr[0]
+            carRatio = [cars.carWth[i] / cars.carWth[0] for i in range(firstYear,self.years)]
+            
+            carExps = (cars.insurance + cars.ezpass + cars.fuel) * 12
+            for i in range(self.years):
+                # carExps *= 1 + self.inflation[i]
 
-            total[i] = cars.carPay[i]
-            total[i] += (np.random.triangular(cars.repairs[0],cars.repairs[1],cars.repairs[2]) * 12) * carRatio[i]    
-            total[i] += carExps * carRatio[i]
+                total[i] = cars.carPay[i]
+                total[i] += (np.random.triangular(cars.repairs[0],cars.repairs[1],cars.repairs[2]) * 12) * carRatio[i]    
+                total[i] += carExps * carRatio[i]
 
-        total += cars.carDwn
+            total += cars.carDwn
 
         return total
     
@@ -289,22 +306,10 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        # Reference
-        y = np.zeros(self.years)
-        for i in range(self.years):
-            y[i] = np.exp(-i / (self.years / rand.decayFactor))
-        
-        expWid = rand.maxExp * rand.binWid / self.years
+        expFunc = lambda x : np.exp(x * rand.decayFactor) - 1
+        expDist = lambda r : expFunc(r) / expFunc(1)
         
         for i in range(self.years):
-            curBin = np.floor(i / rand.binWid)
-            
-            while True:
-                expense = -(rand.maxExp / rand.decayFactor) * np.log(np.random.random())
-                expBin = np.floor(expense / expWid)
-                
-                if expBin <= curBin:
-                    total[i] = expense
-                    break
+            total[i] = expDist(np.random.random()) * (rand.maxExp * self.summedInflation[i])
     
         return total

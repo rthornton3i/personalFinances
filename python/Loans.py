@@ -15,7 +15,7 @@ class Loans:
         self.loanWth  = np.zeros(self.years)
         self.loanDwn  = np.zeros(self.years)
 
-        loan = self.vars.loans
+        loan = self.vars.expenses.loans
         for i in range(loan.numLoans):
             [loan.loanBal, 
              loan.loanPay, 
