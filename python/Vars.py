@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 class Inputs():
-    file = 'Inputs.xlsx'
+    file = 'Inputs/Inputs_TISHY.xlsx'
 
     """BASE"""
     inputSheet = 'Inputs'
@@ -45,7 +45,6 @@ class Vars():
         self.filing = self.Filing()
         self.children = self.Children()
         
-        self.loans = self.Loans()
         self.expenses = self.Expenses()  
         
         self.benefits = self.Benefits()
@@ -107,17 +106,11 @@ class Vars():
             self.maxChildYr        = inputFields.loc['Max Age of Childcare'].values[0]
             self.childInflationVal = inputFields.loc['Child Inflation'].values[0]
 
-    class Loans(Inputs):
-        def __init__(self):
-            super().__init__()
-
-            self.loanSummary = pd.read_excel(self.file,self.loanSheet,header=1,usecols='A:D',
-                                             names=['loanYr','prin','term','rate']).dropna()
-
-            self.numLoans = self.loanSummary.shape[0]
+    
 
     class Expenses:
         def __init__(self):
+            self.loans = self.Loans()
             self.cars = self.Cars()
             self.house = self.House()
             self.rent = self.Rent()
@@ -136,6 +129,17 @@ class Vars():
             self.major = self.Major()
             self.random = self.Random()
         
+        class Loans(Inputs):
+            def __init__(self):
+                super().__init__()
+
+                self.loanSummary = pd.read_excel(self.file,self.loanSheet,header=1,usecols='A:D',
+                                                names=['loanYr','prin','term','rate']).dropna()
+                
+                self.allocation = getValue(self.file,self.loanSheet,row=2,col='G')
+
+                self.numLoans = self.loanSummary.shape[0]
+
         class Cars(Inputs):
             def __init__(self):
                 super().__init__()
@@ -153,20 +157,24 @@ class Vars():
 
                 self.numCars = self.carSummary.shape[0]
 
-        class Rent:
+        class Rent(Inputs):
             def __init__(self):
-                self.rentYr = []
+                super().__init__()
                 
-                # Total cost per month
-                self.baseRent = 2100
-                self.rentFees = 75 + 50 + 25 # Parking, Pet, Trash
+                rentFields = pd.read_excel(self.file,self.rentSheet,header=None,index_col=0,skiprows=1,names=None).drop(columns=1)
+            
+                self.allocation = getValue(self.file,self.rentSheet,row=13,col='B')
+
+                self.rentYr   = dropnan(rentFields.loc['Rent Years'].values[0:2])
+                self.baseRent = rentFields.loc['Base Rent'].values[0]
+                self.rentFees = dropnan(rentFields.loc['Rent Fees'].values[0:])
                 
-                self.repairs = 50
-                self.insurance = 20
+                self.repairs   = rentFields.loc['Repairs'].values[0:3]
+                self.insurance = rentFields.loc['Insurance'].values[0]
                 
-                self.electricity = 140
-                self.gas = 20      
-                self.water = 40
+                self.electricity = rentFields.loc['Electricity'].values[0]
+                self.gas         = rentFields.loc['Gas'].values[0]      
+                self.water       = rentFields.loc['Water'].values[0]
             
         class House(Inputs):
             def __init__(self):
@@ -322,12 +330,11 @@ class Vars():
             def __init__(self):
                 super().__init__()
                 
-                self.allocation = getValue(self.file,self.randomSheet,row=6,col='B')
+                self.allocation = getValue(self.file,self.randomSheet,row=5,col='B')
 
-                randomFields = pd.read_excel(self.file,self.randomSheet,header=None,index_col=0,skiprows=1,nrows=3,names=None).drop(columns=1)
+                randomFields = pd.read_excel(self.file,self.randomSheet,header=None,index_col=0,skiprows=1,nrows=2,names=None).drop(columns=1)
                 self.maxExp         = randomFields.loc['Max Cost'].values[0]
-                self.decayFactor    = randomFields.loc['Decay Factor'].values[0]
-                self.binWid         = randomFields.loc['Bin Width'].values[0]                
+                self.decayFactor    = randomFields.loc['Decay Factor'].values[0]             
     
     class Benefits:
         def __init__(self):
@@ -345,9 +352,6 @@ class Vars():
                 self.medicalPrem = (148*12)
                 self.visionPrem = (14*12)
                 self.dentalPrem = (28*12)
-                
-                self.healthDed = []
-                self.healthBen = []
         
         class Retirement:
             def __init__(self):
@@ -357,10 +361,6 @@ class Vars():
                 
                 self.rmdAge = 72
                 self.rmdFactor = [0.00962,2.345,144.617]
-                
-                self.rmdDist = []
-                self.netTradCont = []
-                self.netRothCont = []
             
                 self.maxSelfCont = 22500
                 self.maxTotalCont = 66000
@@ -399,32 +399,17 @@ class Vars():
                 self.bendPerc = [0.9,0.32,0.15]
                 self.bendPts = [1115,6721,1e9]
                 self.bendSlope = [[0.33,25],[1.99,155]]
-            
-                self.ssIns = []
-                self.ssTax = []
         
     class Taxes:
         def __init__(self):
             self.federal = self.Federal()
             self.state = self.State()
-            
-            self.totalTaxes = []
-            self.totalDeducted = []
-            self.totalWithheld = []
-            self.netIncome = []
-            self.netCash = []
-            self.totalTradRet = []
-            self.totalRothRet = []
 
         class Federal:
             def __init__(self):
                 self.fica = self.Fica()
                 self.deductions = self.Deductions()
                 self.exemptions = self.Exemptions()
-                
-                self.grossIncomeFed = []
-                self.fedTax = []
-                self.ficaTax = []
 
             class Fica:
                 def __init__(self):
@@ -433,11 +418,11 @@ class Vars():
 
                 class SS:
                     def __init__(self):
-                        self.ssTax = []
+                        pass
 
                 class MED:
                     def __init__(self):
-                        self.medTax = []      
+                        pass    
 
             class Deductions:
                 def __init__(self):
@@ -446,25 +431,21 @@ class Vars():
 
                 class Itemized:
                     def __init__(self):
-                        self.itemDedFed = []
+                        pass
 
                 class Standard:
                     def __init__(self):
-                        self.stdDedFed = []
+                        pass
             
             class Exemptions:
                 def __init__(self):
-                    self.exemptFed = []    
+                    pass   
 
         class State:
             def __init__(self):
                 self.local = self.LocalTax()
                 self.deductions = self.Deductions()
                 self.exemptions = self.Exemptions()
-            
-                self.grossIncomeState = []
-                self.stateTax = []
-                self.saltTaxes = []
             
             class LocalTax:
                 def __init__(self):
@@ -477,11 +458,11 @@ class Vars():
 
                 class Itemized:
                     def __init__(self):
-                        self.itemDedState = []
+                        pass
 
                 class Standard:
                     def __init__(self):
-                        self.stdDedState = []
+                        pass
             
             class Exemptions:
                 def __init__(self):
@@ -490,22 +471,16 @@ class Vars():
                 
                 class PersExempt:
                     def __init__(self):
-                        self.persExemptState = []
+                        pass
                 
 
                 class ChildExempt:
                     def __init__(self):
-                        self.childExemptState = []
+                        pass
     
     class Savings():
         def __init__(self):
-            self.savings = []
-            self.contributions = []
-            self.withdrawals = []
-
-            self.allocations = []
-            self.earnings = []
-            self.expenses = []
+            pass
     
     class Accounts(Inputs):
         def __init__(self):
@@ -513,27 +488,5 @@ class Vars():
             
             self.allocations = pd.read_excel(self.file,self.allocationsSheet,skiprows=1,index_col=0,header=None)
             self.earnings = pd.read_excel(self.file,self.earningsSheet,skiprows=2,index_col=0,header=None)
-            self.accountSummary = pd.read_excel(self.file,self.accountsSheet,skiprows=2,index_col=0,header=None,names=['baseSavings','capGainsType','accountType'])
-
-                            # To, From, [OPT] Yr
-            # self.underflow =   [[[10],[9]],
-            #                     [[9],[8]],
-            #                     [[8],[4,3,2,1,0]],
-            #                     [[7],[4,3,2,1,0]]]
-        
-            #             # From, To, Max, [OPT] Yr
-            # self.overflow =    [[4,3,250e3],
-            #                     [4,3,0,15],
-            #                     [3,2,2e6],
-            #                     [2,1,2e6,25],
-            #                     [1,0,2e6,25]]
-
-
-# al = vars.accounts()
-# for att, _ in al.__dict__.items():
-#     print(att)
-# print('here')
-
-
-# vars = Vars()
-# print('here')
+            self.accountSummary = pd.read_excel(self.file,self.accountsSheet,skiprows=2,index_col=0,header=None,
+                                                names=['baseSavings','capGainsType','accountType','overflow','overAmt','underflow'])
