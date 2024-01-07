@@ -1,5 +1,3 @@
-from Utility import Utility
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -11,14 +9,6 @@ class Savings:
         self.vars = vars
         
         self.years = vars.base.years
-        self.numInd = vars.base.numInd
-        self.ages = vars.base.ages
-
-        self.isKids = vars.children.isKids
-        self.childBaseAges = vars.children.childBaseAges
-        
-        self.netCash = vars.taxes.netCash
-        self.numAccounts = len(vars.accounts.__dict__.items())
     
     def run(self):    
         savings = self.vars.savings    
