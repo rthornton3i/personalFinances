@@ -1,8 +1,7 @@
-from Utility import Utility
-
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import warnings
 
 class Taxes:
     def __init__(self, vars, taxes):
@@ -18,7 +17,7 @@ class Taxes:
 
         self.income = vars.salary.income
         self.salary = vars.salary.salary
-        self.inflation = vars.salary.summedInflation
+        self.summedInflation = vars.salary.summedInflation
         self.childInflation = vars.children.childInflation
 
         self.totalExpenses = vars.expenses.totalExpenses
@@ -29,114 +28,87 @@ class Taxes:
         self.isKids = self.vars.children.isKids
         self.childBaseAges = self.vars.children.childBaseAges
         
-    def run(self):  
-        taxes = self.vars.taxes
-        benefits = self.vars.benefits
+    def run(self):
         savings = self.vars.savings
-
-        federal = taxes.federal
-        state = taxes.state
-        health = benefits.health
-        retirement = benefits.retirement
 
         self.expenses = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
         self.savings = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
 
-#      Benefits
+#       Capital Gains
+        ##############################
+        self.stCapGains = np.zeros(self.years)
+        self.ltCapGains = np.zeros(self.years)
+
+#       Benefits
+        ##############################
         self.healthCalc()
-        health.healthDed = self.healthDed
-        health.healthBen = self.healthBen
         
-#      Retirement
+#       Retirement
+        ##############################
         self.perc401 = np.zeros((self.numInd,self.years))
         self.cont401 = np.zeros((self.numInd,self.years))
         
-        retirement.traditional.contribution = self.retContCalc(self.vars.benefits.retirement.traditional)
-        retirement.roth.contribution = self.retContCalc(self.vars.benefits.retirement.roth)
-        retirement.match.contribution = self.matchContCalc(self.vars.benefits.retirement.match)
+        self.tradCont = self.retContCalc(self.vars.benefits.retirement.traditional)
+        self.rothCont = self.retContCalc(self.vars.benefits.retirement.roth)
+        self.matchCont = self.matchContCalc(self.vars.benefits.retirement.match)
         
         self.retirementWithdrawalCalc()
-        self.vars.benefits.retirement.traditional.withdrawal = self.tradWithdrawal
-        self.vars.benefits.retirement.roth.withdrawal = self.rothWithdrawal
 
-#      Social Security
-        self.ssTaxCalc()
-        benefits.socialSecurity.taxableBenefits = self.taxableBenefits
-        # plt.plot(self.ssTax)
-
-#      Deduction/Exemptions
+#       Deduction/Exemptions
+        ##############################
         self.itemDedCalc()
-        federal.deductions.itemized.itemDedFed = self.itemDedFed
-        state.deductions.itemized.itemDedState = self.itemDedState
         # plt.plot(self.itemDedFed[0])
         # plt.plot(self.itemDedState[0])
         
         self.stdDedCalc()
-        federal.deductions.standard.stdDedFed = self.stdDedFed
-        state.deductions.standard.stdDedState = self.stdDedState
         # plt.plot(self.stdDedFed[0])
 
         self.exemptCalc()
-        federal.exemptions.exemptFed = self.exemptFed
-        state.exemptions.persExempt.persExemptState = self.persExemptState
-        state.exemptions.childExempt.childExemptState = self.childExemptState
         # plt.plot(self.persExemptState[0])
 
-#      Gross Earnings
+#       Gross Earnings
+        ##############################
         self.grossEarnCalc()
-        federal.grossIncomeFed = self.grossIncomeFed
-        state.grossIncomeState = self.grossIncomeState
-        # plt.plot(self.grossIncomeFed[0])
-        # plt.plot(self.grossIncomeState[0])
+        # plt.plot(self.taxableIncomeFed[0])
+        # plt.plot(self.taxableIncomeState[0])
 
-#      State Taxes
+#       State Taxes
+        ##############################
         self.slTaxCalc()
-        state.saltTaxes = self.saltTaxes
         # plt.plot(self.vars.taxes.state.saltTaxes[0])
 
-#      Gross Earnings (Update)
         self.itemDedCalc()
-        federal.deductions.itemized.itemDedFed = self.itemDedFed
-        state.deductions.itemized.itemDedState = self.itemDedState
-        
         self.grossEarnCalc()
-        federal.grossIncomeFed = self.grossIncomeFed
-        state.grossIncomeState = self.grossIncomeState
-        # plt.plot(self.grossIncomeFed[0])
-        # plt.plot(self.grossIncomeState[0])
+        # plt.plot(self.taxableIncomeFed[0])
+        # plt.plot(self.taxableIncomeState[0])
         # plt.show()
+
+#       Social Security
+        ##############################
+        self.ssTaxCalc()
+        # plt.plot(self.ssTax)
         
-#      Federal Taxes
+#       Federal Taxes
+        ##############################
         self.fedTaxCalc()
-        federal.fedTax  = self.fedTax
-        federal.ficaTax = self.ficaTax
         # plt.plot(federal.fedTax[0])
         # plt.show()
         
-#      Net self.income    
-        self.netIncCalc()                     
-        taxes.totalTaxes    = self.totalTaxes
-        taxes.totalDeducted = self.totalDeducted
-        taxes.totalWithheld = self.totalWithheld
-        taxes.netIncome = self.netIncome
-        taxes.netCash   = self.netCash
-        retirement.netTradCont = self.netTradCont
-        retirement.netRothCont = self.netRothCont
+#       Net income  
+        ############################## 
+        self.netIncCalc() 
         # plt.plot(taxes.netCash)
         # plt.show()
 
-        """ADD RETIREMENT TO TAXABLE INCOME"""
+#       Savings
+        ##############################
         self.savingsCalc()
-        savings.expenses = self.expenses
-        savings.savings = self.savings
+        self.vars.taxes.savings = self.savings
 
         return self.vars
     
     def healthCalc(self):   
-        health = self.vars.benefits.health
-
-        self.healthDed = np.zeros((self.iters,self.years))
-        self.healthBen = np.zeros((self.iters,self.years))        
+        health = self.vars.benefits.health              
         
         hsa = np.zeros((self.iters,self.years))
         fsa = np.zeros((self.iters,self.years))
@@ -144,18 +116,21 @@ class Taxes:
         medicalPrem = np.zeros((self.iters,self.years))
         visionPrem  = np.zeros((self.iters,self.years))
         dentalPrem  = np.zeros((self.iters,self.years))
+
+        self.healthDed = np.zeros((self.iters,self.years))
+        self.healthBen = np.zeros((self.iters,self.years))  
         
         for i in range(self.iters):
             retire = min(self.retAges[i] - self.baseAges[i],self.years)
             for j in range(retire):
                 """INFLATION"""
-                hsa[i,j] = (health.hsa * self.inflation[j]) * (1 + self.childInflation[j])
-                fsa[i,j] = (health.fsa * self.inflation[j]) * (1 + self.childInflation[j])
-                hra[i,j] = (health.hra * self.inflation[j]) * (1 + self.childInflation[j])
+                hsa[i,j] = (health.hsa * self.summedInflation[j]) * (1 + self.childInflation[j])
+                fsa[i,j] = (health.fsa * self.summedInflation[j]) * (1 + self.childInflation[j])
+                hra[i,j] = (health.hra * self.summedInflation[j]) * (1 + self.childInflation[j])
 
-                medicalPrem[i,j] = (health.medicalPrem * self.inflation[j]) * (1 + self.childInflation[j])
-                visionPrem[i,j]  = (health.visionPrem * self.inflation[j]) * (1 + self.childInflation[j])
-                dentalPrem[i,j]  = (health.dentalPrem * self.inflation[j]) * (1 + self.childInflation[j])
+                medicalPrem[i,j] = (health.medicalPrem * self.summedInflation[j]) * (1 + self.childInflation[j])
+                visionPrem[i,j]  = (health.visionPrem * self.summedInflation[j]) * (1 + self.childInflation[j])
+                dentalPrem[i,j]  = (health.dentalPrem * self.summedInflation[j]) * (1 + self.childInflation[j])
 
         # Post-retirement
 
@@ -177,7 +152,7 @@ class Taxes:
 
         for i in range(self.numInd):
             for j in range(self.years):
-                maxCont = (retire.maxSelfCont + retire.maxCatchUpCont if self.vars.base.ages[i,j] >= retire.catchUpAge else retire.maxSelfCont) * self.inflation[j]
+                maxCont = (retire.maxSelfCont + retire.maxCatchUpCont if self.vars.base.ages[i,j] >= retire.catchUpAge else retire.maxSelfCont) * self.summedInflation[j]
                 if self.cont401[i,j] > maxCont:
                     self.cont401[i,j] = maxCont
                     contribution[i,j] = maxCont
@@ -199,7 +174,7 @@ class Taxes:
         
         for i in range(self.numInd):
             for j in range(self.years):
-                maxCont = (retire.maxTotalCont + retire.maxCatchUpCont if self.vars.base.ages[i,j] >= retire.catchUpAge else retire.maxTotalCont) * self.inflation[j]
+                maxCont = (retire.maxTotalCont + retire.maxCatchUpCont if self.vars.base.ages[i,j] >= retire.catchUpAge else retire.maxTotalCont) * self.summedInflation[j]
                 if self.cont401[i,j] > maxCont:
                     contribution[i,j] -= self.cont401[i,j] - maxCont
         
@@ -208,56 +183,54 @@ class Taxes:
     def ssTaxCalc(self):  
         ss = self.vars.benefits.socialSecurity
 
-        self.taxableBenefits = np.zeros((self.iters,self.years))
-
         match self.filingType:
             case "JOINT":    socialSecurity = self.taxes.federal.ss.joint
             case "SEPARATE": socialSecurity = self.taxes.federal.ss.separate
             case "SINGLE":   socialSecurity = self.taxes.federal.ss.single
-            case _:          socialSecurity = self.taxes.federal.ss.single # Assume Single 
-         
-        for i in range(self.iters):
-            for j in range(self.years):
-                combinedIncome = self.salary[i,j] + (ss.ssIns[i,j] / 2)
+
+        for j in range(self.years):
+            ssIns = ss.ssIns[:,j] if self.iters == self.numInd else [np.sum(ss.ssIns[:,j])]
+
+            for i in range(self.iters):
                 for k in range(len(socialSecurity.bracketMax)):
-                    if combinedIncome < socialSecurity.bracketMax[k]:
-                        self.taxableBenefits[i,j] = socialSecurity.bracketPerc[k] * ss.ssIns[i,j]
+                    if self.taxableIncomeFed[i,j] < socialSecurity.bracketMax[k]:
+                        self.taxableBenefits[i,j] = socialSecurity.bracketPerc[k] * ssIns[i]
 
     def retirementWithdrawalCalc(self):
         def distributionYrs(age):
             return -0.00000684*age**4+0.00266293*age**3-0.37364604*age**2+21.78182*age-414.165
          
         savings = self.vars.savings
-        accounts = self.vars.accounts
-        accountType = accounts.accountSummary.accountType
+        accountSummary = self.vars.accounts.accountSummary
         ret = self.vars.benefits.retirement
 
         self.netTradCont = np.zeros(self.years)
         self.netRothCont = np.zeros(self.years)
+
         self.tradWithdrawal = np.zeros((self.numInd,self.years))
         self.rothWithdrawal = np.zeros((self.numInd,self.years))
 
         for j in range(self.years):
             for accName,_ in savings.earnings.items():
                 """PREVIOUS YEARS BALANCE"""
-                match str(accountType.loc[accName]).upper():
+                match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD':
                         for i in range(self.numInd):
-                            self.netTradCont[j] += ret.traditional.contribution[i,j] + ret.match.contribution[i,j]
-                            self.netRothCont[j] += ret.roth.contribution[i,j]
+                            self.netTradCont[j] += self.tradCont[i,j] + self.matchCont[i,j]
+                            self.netRothCont[j] += self.rothCont[i,j]
                             
                         if j == 0:
-                            self.savings.loc[0,accName] += accounts.accountSummary.baseSavings.loc[accName]
+                            self.savings.loc[0,accName] += accountSummary.baseSavings.loc[accName]
                         else:
                             self.savings.loc[j,accName] += self.savings.loc[j-1,accName]
                 
                 """ADD CONTRIBUTIONS"""
-                match str(accountType.loc[accName]).upper():
+                match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH': self.savings.loc[j,accName] += self.netRothCont[j]
                     case 'TRAD': self.savings.loc[j,accName] += self.netTradCont[j]
 
                 """ADD EARNINGS"""
-                match str(accountType.loc[accName]).upper():
+                match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD':
                         if j > 0:
                             self.savings.loc[j,accName] += savings.earnings.loc[j,accName] * self.savings.loc[j-1,accName]
@@ -265,7 +238,7 @@ class Taxes:
                 """SUBTRACT DISTRIBTUIONS"""
                 for i in range(self.numInd):
                     if self.ages[i,j] >= ret.rmdAge:
-                        match str(accountType.loc[accName]).upper():
+                        match str(accountSummary.accountType.loc[accName]).upper():
                             case 'ROTH': 
                                 dist = np.sum(self.savings.loc[j,accName] / distributionYrs(self.ages[i,j]))
                                 self.rothWithdrawal[i,j] = dist
@@ -278,29 +251,26 @@ class Taxes:
     def itemDedCalc(self):
         itemDed = self.taxes.federal.deductions.itemized
         house = self.vars.expenses.house
-        saltTaxes = self.vars.taxes.state.saltTaxes
 
         mortInt = np.zeros((self.iters,self.years))
         charDon = np.zeros((self.iters,self.years))
         slpDed = np.zeros((self.iters,self.years))
-        
+
         self.itemDedFed = np.zeros((self.iters,self.years))
         self.itemDedState = np.zeros((self.iters,self.years))
+        self.saltTaxes = np.zeros((self.iters,self.years))
 
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
                 # SLP Taxes
-                if len(saltTaxes) > 0:
-                    slpDed[i,j] = (self.inflation[j] * itemDed.maxSalt) / self.iters if saltTaxes[i,j] > (self.inflation[j] * itemDed.maxSalt) / self.iters else saltTaxes[i,j]
-                else:
-                    slpDed[i,j] = 0
+                slpDed[i,j] = (self.summedInflation[j] * itemDed.maxSalt) / self.iters if self.saltTaxes[i,j] > (self.summedInflation[j] * itemDed.maxSalt) / self.iters else self.saltTaxes[i,j]
                 
                 # Mortgage Interest
-                if house.houseBal[j] < (self.inflation[j] * itemDed.maxHouse) / self.iters:
+                if house.houseBal[j] < (self.summedInflation[j] * itemDed.maxHouse) / self.iters:
                     mortInt[i,j] = house.houseInt[j] / self.iters
                 else:
-                    mortInt[i,j] = ((house.houseInt[j] / house.houseBal[j]) * (self.inflation[j] * itemDed.maxHouse)) / self.iters
+                    mortInt[i,j] = ((house.houseInt[j] / house.houseBal[j]) * (self.summedInflation[j] * itemDed.maxHouse)) / self.iters
                 
                 # Charitable Donations
                 charDon[i,j] = self.totalExpenses.charity[j] / self.iters
@@ -314,14 +284,14 @@ class Taxes:
     
     def stdDedCalc(self):
         dedFed = self.taxes.federal.deductions.standard
-
+                
         self.stdDedFed = np.zeros((self.iters,self.years))
         self.stdDedState = np.zeros((self.iters,self.years))
-                
+
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
-                self.stdDedFed[i,j] = ((self.inflation[j] * dedFed.maxFed) * self.numInd) / self.iters
+                self.stdDedFed[i,j] = ((self.summedInflation[j] * dedFed.maxFed) * self.numInd) / self.iters
                 
                 # STATE
                 match self.filingState:
@@ -332,10 +302,10 @@ class Taxes:
 
                         self.stdDedState[i,j] = dedState.basePerc * self.income[i,j]
 
-                        if self.stdDedState[i,j] < (self.inflation[j] * dedState.stdDedMin) / self.iters:
-                            self.stdDedState[i,j] = (self.inflation[j] * dedState.stdDedMin) / self.iters
-                        elif self.stdDedState[i,j] > (self.inflation[j] * dedState.stdDedMax) / self.iters:
-                            self.stdDedState[i,j] = (self.inflation[j] * dedState.stdDedMax) / self.iters
+                        if self.stdDedState[i,j] < (self.summedInflation[j] * dedState.stdDedMin) / self.iters:
+                            self.stdDedState[i,j] = (self.summedInflation[j] * dedState.stdDedMin) / self.iters
+                        elif self.stdDedState[i,j] > (self.summedInflation[j] * dedState.stdDedMax) / self.iters:
+                            self.stdDedState[i,j] = (self.summedInflation[j] * dedState.stdDedMax) / self.iters
                     
                     case "AK"| "FL"| "NV"| "NH"| "SD"| "TN"| "TX"| "WA"| "WY":
                         self.stdDedState[i,j] = 0
@@ -370,14 +340,14 @@ class Taxes:
                                 childExempt = self.taxes.state.nj.exemptions.childExempt.single                   
                                 
                         for k in range(len(persExempt.bracketMax)):
-                            if self.income[i,j] < (self.inflation[j] * persExempt.bracketMax[k]):
-                                self.persExemptState[i,j] = (self.inflation[j] * persExempt.bracketAmt[k])                               
+                            if self.income[i,j] < (self.summedInflation[j] * persExempt.bracketMax[k]):
+                                self.persExemptState[i,j] = (self.summedInflation[j] * persExempt.bracketAmt[k])                               
                                 break
                         
                         for _ in range(int(self.isKids[j])):
                             for k in range(len(childExempt.bracketMax)):
-                                if self.income[i,j] < (self.inflation[j] * childExempt.bracketMax[k]):
-                                    self.childExemptState[i,j] += (self.inflation[j] * childExempt.bracketAmt[k]) / self.iters
+                                if self.income[i,j] < (self.summedInflation[j] * childExempt.bracketMax[k]):
+                                    self.childExemptState[i,j] += (self.summedInflation[j] * childExempt.bracketAmt[k]) / self.iters
                                     break
                     
                     case "MD":
@@ -396,14 +366,14 @@ class Taxes:
                                 childExempt = self.taxes.state.md.exemptions.childExempt.single
                         
                         for k in range(len(persExempt.bracketMax)):
-                            if self.income[i,j] < (self.inflation[j] * persExempt.bracketMax[k]):
-                                self.persExemptState[i,j] = (self.inflation[j] * persExempt.bracketAmt[k])
+                            if self.income[i,j] < (self.summedInflation[j] * persExempt.bracketMax[k]):
+                                self.persExemptState[i,j] = (self.summedInflation[j] * persExempt.bracketAmt[k])
                                 break
                         
                         for _ in range(int(self.isKids[j])):
                             for k in range(len(childExempt.bracketMax)):
-                                if self.income[i,j] < (self.inflation[j] * childExempt.bracketMax[k]):
-                                    self.childExemptState[i,j] += (self.inflation[j] * childExempt.bracketAmt[k]) / self.iters
+                                if self.income[i,j] < (self.summedInflation[j] * childExempt.bracketMax[k]):
+                                    self.childExemptState[i,j] += (self.summedInflation[j] * childExempt.bracketAmt[k]) / self.iters
                                     break
                     
                     case "AK"| "FL"| "NV"| "NH"| "SD"| "TN"| "TX"| "WA"| "WY":
@@ -411,55 +381,49 @@ class Taxes:
                         self.childExemptState[i,j] = 0
     
     def grossEarnCalc(self):
-        itemDedFed = self.vars.taxes.federal.deductions.itemized.itemDedFed
-        itemDedState = self.vars.taxes.state.deductions.itemized.itemDedState
-
-        stdDedFed = self.vars.taxes.federal.deductions.standard.stdDedFed
-        stdDedState = self.vars.taxes.state.deductions.standard.stdDedState
-
-        exemptFed = self.vars.taxes.federal.exemptions.exemptFed
-        persExemptState = self.vars.taxes.state.exemptions.persExempt.persExemptState
-        childExemptState = self.vars.taxes.state.exemptions.childExempt.childExemptState
-
-        contribution = self.vars.benefits.retirement.traditional.contribution
-        healthDed = self.vars.benefits.health.healthDed
-        healthBen = self.vars.benefits.health.healthBen
-
-        self.grossIncomeFed = np.zeros((self.iters,self.years))
-        self.grossIncomeState = np.zeros((self.iters,self.years))
+        self.taxableIncomeFed = np.zeros((self.iters,self.years))
+        self.taxableIncomeState = np.zeros((self.iters,self.years))
+        self.taxableBenefits = np.zeros((self.iters,self.years))
 
         for i in range(self.iters):
             for j in range(self.years):
                 # FEDERAL
-                self.grossIncomeFed[i,j] = self.income[i,j] + self.taxableBenefits[i,j] + self.tradWithdrawal[i,j] - (contribution[i,j] + healthDed[i,j] + healthBen[i,j]) 
-                self.grossIncomeFed[i,j] -= itemDedFed[i,j] if itemDedFed[i,j] > stdDedFed[i,j] else stdDedFed[i,j]
+                self.taxableIncomeFed[i,j] = self.income[i,j] + self.taxableBenefits[i,j] + self.tradWithdrawal[i,j] + (self.stCapGains[j] / self.iters)
+                self.taxableIncomeFed[i,j] -= self.tradCont[i,j] + self.healthDed[i,j] + self.healthBen[i,j]
+                self.taxableIncomeFed[i,j] -= self.itemDedFed[i,j] if self.itemDedFed[i,j] > self.stdDedFed[i,j] else self.stdDedFed[i,j]
                 
                 # STATE
-                self.grossIncomeState[i,j] = self.income[i,j]
+                self.taxableIncomeState[i,j] = self.income[i,j]
                 match self.filingState:
                     case "AK"| "FL"| "NV"| "NH"| "SD"| "TN"| "TX"| "WA"| "WY":
                         pass
-                    case "NJ"|"CA":
-                        self.grossIncomeState[i,j] -= (contribution[i,j] + persExemptState[i,j] + childExemptState[i,j]) 
                     case _:
-                        self.grossIncomeState[i,j] -= (contribution[i,j] + persExemptState[i,j] + childExemptState[i,j] + healthDed[i,j])
+                        self.taxableIncomeState[i,j] -= (self.tradCont[i,j] + self.persExemptState[i,j] + self.childExemptState[i,j])
 
+                """HEALTH DEDUCTIONS"""
+                match self.filingState:
+                    case "AK"| "FL"| "NV"| "NH"| "SD"| "TN"| "TX"| "WA"| "WY"| "NJ"|"CA":
+                        self.taxableIncomeState[i,j] -= self.healthDed[i,j]
+
+                """RETIREMENT"""
                 match self.filingState:
                     case "NJ":
-                        self.grossIncomeState[i,j] += self.tradWithdrawal[i,j]
+                        self.taxableIncomeState[i,j] += self.tradWithdrawal[i,j]
 
+                """SOCIAL SECURITY"""
                 match self.filingState:
                     case "CO"| "CT"| "KS"| "MN"| "MO"| "MT"| "NE"| "NM"| "ND"| "RI"| "UT"| "VT"| "WV":
-                        self.grossIncomeState[i,j] += self.taxableBenefits[i,j]
+                        self.taxableIncomeState[i,j] += self.taxableBenefits[i,j]
                 
+                """CAPITAL GAINS"""
                 match self.filingState:
                     case "AK"| "FL"| "NV"| "NH"| "SD"| "TN"| "TX"| "WA"| "WY":
                         pass
                     case _:
-                        self.grossIncomeState[i,j] -= itemDedState[i,j] if itemDedState[i,j] > stdDedState[i,j] else stdDedState[i,j]
+                        self.taxableIncomeState[i,j] += (self.stCapGains[j] + self.ltCapGains[j]) / self.iters
                 
-                self.grossIncomeFed[i,j] = 0 if self.grossIncomeFed[i,j] < 0 else self.grossIncomeFed[i,j]
-                self.grossIncomeState[i,j] = 0 if self.grossIncomeState[i,j] < 0 else self.grossIncomeState[i,j]
+                self.taxableIncomeFed[i,j] = 0 if self.taxableIncomeFed[i,j] < 0 else self.taxableIncomeFed[i,j]
+                self.taxableIncomeState[i,j] = 0 if self.taxableIncomeState[i,j] < 0 else self.taxableIncomeState[i,j]
     
     def slTaxCalc(self):
         house = self.vars.expenses.house
@@ -467,10 +431,6 @@ class Taxes:
         stateTax = np.zeros((self.iters,self.years))
         localTax = np.zeros((self.iters,self.years))
         propTax = np.zeros((self.iters,self.years))
-
-        self.saltTaxes = np.zeros((self.iters,self.years))
-
-        grossIncomeState = self.vars.taxes.state.grossIncomeState
         
         for i in range(self.iters):
             match self.filingState:
@@ -501,26 +461,25 @@ class Taxes:
                 maxBracket = 0
                 for k in range(len(state.bracketMax)):
                     minBracket = maxBracket
-                    maxBracket = (self.inflation[j] * state.bracketMax[k])
+                    maxBracket = (self.summedInflation[j] * state.bracketMax[k])
                     rateBracket = state.bracketPerc[k]
                     
-                    if grossIncomeState[i,j] > maxBracket:
+                    if self.taxableIncomeState[i,j] > maxBracket:
                         stateTax[i,j] += (maxBracket - minBracket) * rateBracket
-                    elif grossIncomeState[i,j] > minBracket:
-                        stateTax[i,j] += (grossIncomeState[i,j] - minBracket) * rateBracket
+                    elif self.taxableIncomeState[i,j] > minBracket:
+                        stateTax[i,j] += (self.taxableIncomeState[i,j] - minBracket) * rateBracket
 
                 
-                localTax[i,j] = grossIncomeState[i,j] * local.localPerc
+                localTax[i,j] = self.taxableIncomeState[i,j] * local.localPerc
                 propTax[i,j] = house.houseWth[j] * house.propTax
                 
                 self.saltTaxes[i,j] += stateTax[i,j] + localTax[i,j] + propTax[i,j]
     
-    def fedTaxCalc(self):    
+    def fedTaxCalc(self):      
         self.fedTax = np.zeros((self.iters,self.years))
         self.ficaTax = np.zeros((self.iters,self.years))
+        self.capGainsTax = np.zeros((self.iters,self.years))
 
-        grossIncomeFed = self.vars.taxes.federal.grossIncomeFed
-            
         match self.filingType:
             case "JOINT":    
                 federal = self.taxes.federal.federal.joint
@@ -545,38 +504,49 @@ class Taxes:
                 maxBracket = 0
                 for k in range(len(federal.bracketMax)):
                     minBracket = maxBracket
-                    maxBracket = (self.inflation[j] * federal.bracketMax[k])
+                    maxBracket = (self.summedInflation[j] * federal.bracketMax[k])
                     rateBracket = federal.bracketPerc[k]
                     
-                    if grossIncomeFed[i,j] > maxBracket:
+                    if self.taxableIncomeFed[i,j] > maxBracket:
                         self.fedTax[i,j] += (maxBracket - minBracket) * rateBracket
-                    elif (grossIncomeFed[i,j] > minBracket):
-                        self.fedTax[i,j] += (grossIncomeFed[i,j] - minBracket) * rateBracket
+                    elif (self.taxableIncomeFed[i,j] > minBracket):
+                        self.fedTax[i,j] += (self.taxableIncomeFed[i,j] - minBracket) * rateBracket
                 
                 # SS Tax
-                if grossIncomeFed[i,j] < (self.inflation[j] * socialSecurity.maxSal):
-                    self.ficaTax[i,j] += grossIncomeFed[i,j] * socialSecurity.rate
+                if self.taxableIncomeFed[i,j] < (self.summedInflation[j] * socialSecurity.maxSal):
+                    self.ficaTax[i,j] += self.taxableIncomeFed[i,j] * socialSecurity.rate
                 else:
-                    self.ficaTax[i,j] += (self.inflation[j] * socialSecurity.maxSal) * socialSecurity.rate
+                    self.ficaTax[i,j] += (self.summedInflation[j] * socialSecurity.maxSal) * socialSecurity.rate
                 
                 # Medicare Tax
-                if grossIncomeFed[i,j] < (self.inflation[j] * medicare.maxSal):
-                    self.ficaTax[i,j] += grossIncomeFed[i,j] * medicare.rate
+                if self.taxableIncomeFed[i,j] < (self.summedInflation[j] * medicare.maxSal):
+                    self.ficaTax[i,j] += self.taxableIncomeFed[i,j] * medicare.rate
                 else:
-                    self.ficaTax[i,j] += (self.inflation[j] * medicare.maxSal) * medicare.rate
-                    self.ficaTax[i,j] += (grossIncomeFed[i,j] - (self.inflation[j] * medicare.maxSal)) * medicare.addRate
+                    self.ficaTax[i,j] += (self.summedInflation[j] * medicare.maxSal) * medicare.rate
+                    self.ficaTax[i,j] += (self.taxableIncomeFed[i,j] - (self.summedInflation[j] * medicare.maxSal)) * medicare.addRate
+    
+    def capGainsTaxCalc(self):
+        capitalGains = self.taxes.federal.capitalGains
+
+        taxableGains = np.zeros((self.iters,self.years))
+
+        match self.filingType:
+            case "JOINT":    capGains = capitalGains.joint
+            case "SEPARATE": capGains = capitalGains.separate
+            case "SINGLE":   capGains = capitalGains.single        
+
+        for j in range(self.years):
+            for i in range(self.iters):
+                for k in range(len(capGains.bracketMax)):
+                    if self.taxableIncomeFed[i,j] < capGains.bracketMax[k]:
+                        taxableGains[i,j] = capGains.bracketPerc[k] * (self.ltCapGains[j] / self.iters)
+
+        """TAX"""
+        self.capGainsTax
     
     def netIncCalc(self):
-        loans = self.vars.loans
-        ret = self.vars.benefits.retirement
+        loans = self.vars.expenses.loans
         ss = self.vars.benefits.socialSecurity
-
-        fedTax = self.vars.taxes.federal.fedTax
-        ficaTax = self.vars.taxes.federal.ficaTax
-        saltTaxes = self.vars.taxes.state.saltTaxes
-
-        healthDed = self.vars.benefits.health.healthDed
-        healthBen = self.vars.benefits.health.healthBen
 
         self.totalTaxes = np.zeros(self.years)
         self.totalDeducted = np.zeros(self.years)
@@ -584,26 +554,99 @@ class Taxes:
         
         self.netIncome = np.zeros(self.years)
         self.netCash = np.zeros(self.years)
+
+        self.taxRate = np.zeros(self.years)
         
         for i in range(self.iters):
             for j in range(self.years):
-                self.totalTaxes[j] += fedTax[i,j] + ficaTax[i,j] + saltTaxes[i,j]
-                self.totalDeducted[j] += ret.traditional.contribution[i,j] + healthDed[i,j]
-                self.totalWithheld[j] += ret.roth.contribution[i,j] + healthBen[i,j]
+                self.totalTaxes[j]    += self.fedTax[i,j] + self.ficaTax[i,j] + self.saltTaxes[i,j] + self.capGainsTax[i,j]
+                self.totalDeducted[j] += self.tradCont[i,j] + self.healthDed[i,j]
+                self.totalWithheld[j] += self.rothCont[i,j] + self.healthBen[i,j]
                 
-                self.netIncome[j] += self.income[i,j] 
-                self.netIncome[j] += self.tradWithdrawal[i,j] + self.rothWithdrawal[i,j] + ss.ssIns[i,j] if self.iters == self.numInd else np.sum(self.tradWithdrawal[:,j] + self.rothWithdrawal[:,j] + ss.ssIns[:,j])
-        
+                self.netIncome[j] += self.income[i,j]
+            
         for j in range(self.years):
+            self.netIncome[j] += np.sum(self.tradWithdrawal[:,j] + self.rothWithdrawal[:,j] + ss.ssIns[:,j])
             self.netIncome[j] += np.sum([loan.prin if j == loan.loanYr else 0 for _,loan in loans.loanSummary.iterrows()])
-            self.netIncome[j] -= self.totalTaxes[j]
-            self.netCash[j] = self.netIncome[j] - self.totalDeducted[j] - self.totalWithheld[j]
+            self.netIncome[j] += self.stCapGains[j] + self.ltCapGains[j]
+            
+            self.taxRate[j] = self.totalTaxes[j] / self.netIncome[j]
 
-    def savingsCalc(self):
+            self.netIncome[j] -= self.totalTaxes[j]
+            self.netCash[j]    = self.netIncome[j] - self.totalDeducted[j] - self.totalWithheld[j]
+
+    def savingsCalc(self):   
+        def getWithdrawal(reqWithdrawal):
+            withdrawal = min(reqWithdrawal,max(0,self.savings.loc[j,accFrom]))
+            capGains = accountSummary.capGainsType.loc[accFrom].upper()
+
+            reqWithdrawal -= withdrawal
+            self.savings.loc[j,accFrom] -= withdrawal
+            
+            match capGains:
+                case 'SHORT':
+                    self.stCapGains[j] += withdrawal
+                case 'LONG':
+                    self.ltCapGains[j] += withdrawal
+            
+            return reqWithdrawal
+
+        def underFlowOrder():
+            accsTo = []
+            accsFrom = []
+            for accName,_ in savings.earnings.items():
+                if not pd.isna(accountSummary.underflow.loc[accName]):
+                    accsFrom.append(accountSummary.underflow.loc[accName])
+                    accsTo.append(accName)
+
+            for accTo in accsTo:
+                if accTo not in accsFrom:
+                    acc = accTo
+
+            order = []
+            while True:
+                order.append(acc)
+                acc = accountSummary.underflow.loc[acc]
+
+                if pd.isna(acc):
+                    order.pop()
+                    break
+
+            return order
+
+        def overFlow(yr, account, accountTo, capGainsType, maxBal=1e9):
+            capGainsType = self.vars.accounts.accountSummary.capGainsType
+
+            if self.savings.loc[yr,account] > maxBal:
+                diff = self.savings.loc[yr,account] - maxBal
+                self.savings.loc[yr,account] = maxBal
+                self.savings.loc[yr,accountTo] += diff
+
+                capGains = capGainsType.loc[account].upper()
+
+                match capGains:
+                    case 'SHORT':
+                        self.stCapGains[j] += diff
+                    case 'LONG':
+                        self.ltCapGains[j] += diff
+
+        def calculateTaxes():
+            self.grossEarnCalc()
+
+            self.slTaxCalc()
+            self.itemDedCalc()
+
+            self.grossEarnCalc()
+
+            self.ssTaxCalc()
+            self.capGainsTaxCalc()
+            self.fedTaxCalc()
+
+            self.netIncCalc()
+
         savings = self.vars.savings
         expenses = self.vars.expenses
-        accounts = self.vars.accounts
-        accountType = accounts.accountSummary.accountType
+        accountSummary = self.vars.accounts.accountSummary
         
         # EXPENSES
         for exp,val in expenses.totalExpenses.items():
@@ -613,117 +656,95 @@ class Taxes:
 
         # SAVINGS
         for j in range(self.years):
+            ######################################################################################
+            """EXPENSES"""
             for accName,_ in savings.earnings.items():
-                match str(accountType.loc[accName]).upper():
-                    case 'ROTH'|'TRAD':
-                        pass
+                match str(accountSummary.accountType.loc[accName]).upper():
+                    case 'ROTH'|'TRAD': pass
                     case _:
                         """PREVIOUS YEARS BALANCE"""
                         if j == 0:
-                            self.savings.loc[0,accName] += accounts.accountSummary.baseSavings.loc[accName]
+                            self.savings.loc[0,accName] += accountSummary.baseSavings.loc[accName]
                         else:
                             self.savings.loc[j,accName] += self.savings.loc[j-1,accName]
-                
-                        """ADD ALLOCATIONS"""
-                        self.savings.loc[j,accName] += savings.allocations.loc[j,accName] * self.netCash[j]
 
                         """SUBTRACT EXPENSES"""
                         self.savings.loc[j,accName] -= self.expenses.loc[j,accName]
 
+            ######################################################################################
+            """WITHDRAWALS"""
+            rebalance = 0
+            for accName,_ in savings.earnings.items():
+                match str(accountSummary.accountType.loc[accName]).upper():
+                    case 'ROTH'|'TRAD': pass
+                    case _: rebalance += abs(self.savings.loc[j,accName]) if self.savings.loc[j,accName] < 0 else 0
+
+            """WITHDRAWAL AND TAX"""
+            # self.netCash[j] = 25e3
+            # rebalance = 30e3
+            if rebalance > self.netCash[j]:
+                """GET WITHDRAWALS"""
+                reqWithdrawal = (rebalance - self.netCash[j]) * (1 + self.taxRate[j] + 0.05) # Including 5% margin for additional taxes
+                withdrawalOrder = underFlowOrder()
+
+                accFrom = withdrawalOrder[0]
+                reqWithdrawal = getWithdrawal(reqWithdrawal)
+
+                for accName in withdrawalOrder:
+                    accFrom = accountSummary.underflow.loc[accName]
+                    if not pd.isna(accFrom):
+                        reqWithdrawal = getWithdrawal(reqWithdrawal)
+                    
+                        if reqWithdrawal <= 0:
+                            break
+                
+                # if reqWithdrawal > 0:
+                #     print('--------------------')
+                #     print("YEAR - ",str(j)," - Net expenses.. ",str(np.sum(self.expenses.loc[j,:])))
+                #     print("YEAR - ",str(j)," - Net savings... ",str(np.sum(self.savings.loc[j,:])+self.netCash[j]))
+
+                """TAX WITHDRAWALS"""
+                calculateTaxes()
+
+            """REFILL NEGATIVE ACCOUNTS"""
+            netCash = self.netCash[j]
+            for accName,_ in savings.earnings.items():
+                match str(accountSummary.accountType.loc[accName]).upper():
+                    case 'ROTH'|'TRAD': pass
+                    case _:
+                        if self.savings.loc[j,accName] < 0 and netCash > 0:
+                            deposit = min(abs(self.savings.loc[j,accName]),netCash)
+                            netCash -= deposit
+                            self.savings.loc[j,accName] += deposit
+
+            ######################################################################################
+            """ALLOCATIONS & EARNINGS"""
+            for accName,_ in savings.earnings.items():
+                match str(accountSummary.accountType.loc[accName]).upper():
+                    case 'ROTH'|'TRAD': pass
+                    case _:
+                        """ADD ALLOCATIONS"""
+                        self.savings.loc[j,accName] += savings.allocations.loc[j,accName] * netCash
+
                         """ADD EARNINGS"""
                         if j > 0:
-                            self.savings.loc[j,accName] += savings.earnings.loc[j,accName] * self.savings.loc[j-1,accName]
+                            if self.savings.loc[j-1,accName] > 0:
+                                self.savings.loc[j,accName] += savings.earnings.loc[j,accName] * self.savings.loc[j-1,accName]
 
-                        if str(accountType.loc[accName]).upper() == '529':
-                            if j > -max(self.childBaseAges) and self.isKids[j] == 0:
-                                remainVal = self.savings.loc[j,accName]
-                                self.savings.loc[j,accName] = 0
-                                self.savings.loc[j,'savings'] += remainVal
+                        if str(accountSummary.accountType.loc[accName]).upper() == '529':
+                            if any(self.isKids):
+                                if j > -max(self.childBaseAges) and self.isKids[j] == 0:
+                                    remainVal = self.savings.loc[j,accName]
+                                    self.savings.loc[j,accName] = 0
+                                    self.savings.loc[j,'savings'] += remainVal
 
-        # self.savings.to_csv('Savings.csv')        
+                        """ADJUST UNDERFLOW/OVERFLOW"""
+                        if not pd.isna(accountSummary.overflow.loc[accName]):
+                            overFlow(j, 
+                                     accName,
+                                     accountSummary.overflow.loc[accName],
+                                     accountSummary.capGainsType.loc[accountSummary.overflow.loc[accName]],
+                                     maxBal=accountSummary.overAmt.loc[accName] if not pd.isna(accountSummary.overAmt.loc[accName]) else 1e9)
 
-                # UNDERFLOW
-                # for under in self.vars.accounts.underflow:
-                #     if (len(under) == 3):
-                #         if (j >= under[2][0]):
-                #             self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
-                #             self.savings = self.withdrawal.savings
-                        
-                #     else:
-                #         self.withdrawal = self.underFlow(self.savings,j,under[0][0],under[1])
-                #         self.savings = self.withdrawal.savings
-                    
-                # # OVERFLOW
-                # for over in self.vars.accounts.overflow:
-                #     if (len(over) == 4):
-                #         if (j >= over[3]):
-                #             self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
-                #             self.savings = self.withdrawal.savings
-                        
-                #     else:
-                #         self.withdrawal = self.overFlow(self.savings,j,over[0],over[1],over[2])
-                #         self.savings = self.withdrawal.savings
-                
-                # Remove 529 Excess
-                # if j > max(self.childBaseAges) and self.isKids[j] == 0:
-                #     self.withdrawal = self.overFlow(self.savings,j,7,8,0) # College to Long-Term (Excess)
-                #     self.savings = self.withdrawal.savings 
-    
-    # def overFlow(self, yr, maxVal, accFrom, accTo):
-    #     accounts = self.vars.accounts
-
-    #     overFlow = Withdrawal()
-        
-    #     index = accFrom
-    #     amount = 0
-    #     capGains = accounts.accountSummary.capGainsType[accFrom]
-    #     savingsOut = savingsIn
-        
-    #     if self.savings[accFrom][yr] > maxVal:
-    #         amount = savingsOut[accFrom][yr] - maxVal
-    #         savingsOut[accFrom][yr] = maxVal
-    #         savingsOut[accTo][yr] += amount
-
-    #     overFlow.index = index
-    #     overFlow.amount = amount
-    #     overFlow.capGains = capGains
-    #     overFlow.savings = savingsOut
-        
-    #     return overFlow
-    
-    # def underFlow(self, accIn, accOut):
-        # underFlow = Withdrawal()
-        
-        # index = len(indFrom)
-        # amount = len(indFrom)
-        # capGains = len(indFrom)
-        # savingsOut = savingsIn
-        
-        # if (savingsOut[indTo][yr] < 0):
-        #     transferVal = -savingsOut[indTo][yr]
-        #     savingsOut[indTo][yr] = 0
-            
-        #     accVal = len(indFrom)
-        #     for i in range(len(indFrom)):
-        #         accVal[i] = savingsOut[indFrom[i]][yr]
-        #         if (accVal[i] < 0):
-        #             accVal[i] = 0
-            
-        #     totalVal = np.sum(accVal)
-            
-        #     for i in range(len(indFrom)):
-        #         index[i] = indFrom[i]
-        #         capGains[i] = self.vars.accounts.capGainsType[i]
-        #         if (totalVal == 0):
-        #             amount[i] = transferVal / len(indFrom)
-        #         else:
-        #             amount[i] = (transferVal * (accVal[i] / totalVal))
-                
-        #         savingsOut[indFrom[i]][yr] -= amount[i]
-
-        # underFlow.index = index
-        # underFlow.amount = amount
-        # underFlow.capGains = capGains
-        # underFlow.savings = savingsOut
-                
-        # return underFlow
+                        """TAX WITHDRAWALS"""
+                        calculateTaxes()
