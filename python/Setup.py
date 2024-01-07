@@ -1,8 +1,6 @@
 from Vars import Vars
 from TaxDict import TaxDict
 
-from Utility import Utility
-
 import numpy as np
 import pandas as pd
 
@@ -62,7 +60,8 @@ class Setup:
                 self.salary[i] = np.interp(np.arange(self.years),sal.salCustom.index,sal.salCustom.iloc[:,ind])
             else:
                 """ASSIGN A BASE SALARY"""
-                self.salary[i,0] = sal.salBase[i]
+                ind = 0 if sal.salBase.shape[0] != self.numInd else i
+                self.salary[i,0] = sal.salBase[ind]
                 promotion = np.full(self.years,False)
                 
                 """ACCOUNT FOR PROMOTION BASED ON CHANCE AND WAIT PERIOD"""
