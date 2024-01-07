@@ -96,13 +96,13 @@ class Expenses:
         return total
     
     def loanExp(self):
-        loan = self.vars.expenses.loans
+        loans = self.vars.expenses.loans
         
         total = np.zeros(self.years)
 
-        if loan.numLoans > 0:
+        if loans.numLoans > 0:
             for i in range(self.years):
-                total[i] = loan.loanPay[i]
+                total[i] = loans.loanPay[i]
 
         return total
     

@@ -2,7 +2,7 @@ import pandas as pd
 import numpy as np
 
 class Inputs():
-    file = 'Inputs/Inputs_TISHY.xlsx'
+    file = 'Inputs/Inputs.xlsx'
 
     """BASE"""
     inputSheet = 'Inputs'

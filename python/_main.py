@@ -41,8 +41,8 @@ class Main:
         self.toc = time()
         print('Initial setup done: ',str(self.toc-self.tic))
 
-        # self.executeSingle()
-        self.executeMulti()
+        self.executeSingle()
+        # self.executeMulti()
 
         self.toc = time()
         print('Done: ',str(self.toc-self.tic))
@@ -141,18 +141,19 @@ class Main:
 
         return outputs
 
-def run():
+if __name__ == '__main__':
     import pickle
 
     main = Main()
 
-    with open('Inputs/main.pkl', 'wb') as file:
-        pickle.dump(main, file)
+    # with open('Inputs/main.pkl', 'wb') as file:
+    #     pickle.dump(main, file)
     
     # with open('Inputs/main.pkl', 'rb') as file:
     #     main = pickle.load(file)
 
-    print(f'{np.sum(main.avgTotalSavings.iloc[-1,:])/main.vars.salary.summedInflation[-1]:,.0f}')
+    print('Max net worth:   ',f'{np.max(np.sum(main.avgTotalSavings,axis=1)/main.vars.salary.summedInflation):,.0f}')
+    print('Final net worth: ',f'{np.max(np.sum(main.avgTotalSavings.iloc[-1,:])/main.vars.salary.summedInflation[-1]):,.0f}')
 
     plt.figure()
     n = len(main.avgTotalSavings.columns)
@@ -176,7 +177,3 @@ def run():
     # for acc,accType in accountType.items():
     #     main.allSavings
     #     plt.hist()
-
-
-if __name__ == '__main__':
-    run()

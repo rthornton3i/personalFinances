@@ -81,7 +81,7 @@ class Setup:
         
         """CALCULATE INCOME BASED ON FILING"""
         match self.filingType:
-            case "JOINT":   self.income = np.asarray([np.sum(self.salary,0)])
+            case "JOINT":   self.income = np.array([np.sum(self.salary,0)])
             case _:         self.income = self.salary
             
         self.grossIncome = np.sum(self.salary,0)
