@@ -24,8 +24,8 @@ class Setup:
 
         # Ages
         self.ageCalc()
-        child = self.vars.children
-        base = self.vars.base
+        child:Vars.Children = self.vars.children
+        base:Vars.Base = self.vars.base
         base.ages = self.ages
         base.isRetire = self.isRetire
         child.childAges = self.childAges
@@ -33,7 +33,7 @@ class Setup:
         
         # Salary
         self.salaryCalc()
-        sal = self.vars.salary 
+        sal:Vars.Salary = self.vars.salary 
         sal.salary = self.salary
         sal.income = self.income
         sal.grossIncome = self.grossIncome
@@ -48,9 +48,9 @@ class Setup:
         return self.vars
     
     def salaryCalc(self):
-        base = self.vars.base
-        sal = self.vars.salary
-        child = self.vars.children
+        base:Vars.Base = self.vars.base
+        sal:Vars.Salary = self.vars.salary
+        child:Vars.Children = self.vars.children
 
         self.salary = np.zeros((self.numInd,self.years))
 
@@ -59,12 +59,12 @@ class Setup:
                 ind = 0 if sal.salCustom.shape[1] != self.numInd else i
                 self.salary[i] = np.interp(np.arange(self.years),sal.salCustom.index,sal.salCustom.iloc[:,ind])
             else:
-                """ASSIGN A BASE SALARY"""
+                ## ASSIGN A BASE SALARY
                 ind = 0 if sal.salBase.shape[0] != self.numInd else i
                 self.salary[i,0] = sal.salBase[ind]
                 promotion = np.full(self.years,False)
                 
-                """ACCOUNT FOR PROMOTION BASED ON CHANCE AND WAIT PERIOD"""
+                ## ACCOUNT FOR PROMOTION BASED ON CHANCE AND WAIT PERIOD
                 for j in range(1,self.years):
                     if j < base.retAges[i] - base.baseAges[i]:
                         noPrevPromotion = j+1 > sal.promotionWaitPeriod and not np.any(promotion[j-(sal.promotionWaitPeriod-1):j+1])
@@ -76,17 +76,17 @@ class Setup:
                         else:
                             self.salary[i,j] = self.salary[i,j-1] * (1 + np.random.triangular(sal.salGrowth[0],sal.salGrowth[1],sal.salGrowth[2]))
 
-                """ACCOUNT FOR BONUS"""
+                ## ACCOUNT FOR BONUS
                 self.salary[i] *= 1 + np.random.triangular(sal.salBonus[0],sal.salBonus[1],sal.salBonus[2])
         
-        """CALCULATE INCOME BASED ON FILING"""
+        ## CALCULATE INCOME BASED ON FILING
         match self.filingType:
             case "JOINT":   self.income = np.array([np.sum(self.salary,0)])
             case _:         self.income = self.salary
             
         self.grossIncome = np.sum(self.salary,0)
 
-        """CALCULATE INFLATION"""
+        ## CALCULATE INFLATION
         self.inflation = [np.random.normal(sal.wageInd,sal.wageDev) for _ in range(self.years)]
         self.inflation[0] = 0
 
@@ -96,8 +96,8 @@ class Setup:
 
         self.childInflation = child.childInflationVal * self.isKids
 
-        pd.DataFrame(self.salary.transpose(),index=np.arange(self.years)).to_csv('Outputs/Salary.csv')
-        pd.DataFrame((self.salary/self.summedInflation).transpose(),index=np.arange(self.years)).to_csv('Outputs/Salary_noInflation.csv')
+        # pd.DataFrame(self.salary.transpose(),index=np.arange(self.years)).to_csv('Outputs/Salary.csv')
+        # pd.DataFrame((self.salary/self.summedInflation).transpose(),index=np.arange(self.years)).to_csv('Outputs/Salary_noInflation.csv')
 
     def ageCalc(self):
         base = self.vars.base
@@ -123,103 +123,93 @@ class Setup:
             self.isRetire[ind,self.ages[ind]>base.retAges[ind]] = 1
         
     def socialSecurityCalc(self):
-        base = self.vars.base
-        ss = self.vars.benefits.socialSecurity
-        sal = self.vars.salary
-        socialSecurity = self.taxes.federal.fica.ss.single # Use Single value
+        def propagate(vals):
+            for j in range(prevYrs-1,-1,-1): # previous years
+                vals[j] = vals[j+1] / (1 + wageInflation[j])
+
+            for j in range(prevYrs+1,self.years+prevYrs): # future years
+                vals[j] = vals[j-1] * (1 + wageInflation[j])
+
+            return vals
+
+        base:Vars.Base  = self.vars.base
+        sal:Vars.Salary = self.vars.salary
+        ss:Vars.Benefits.SocialSecurity      = self.vars.benefits.socialSecurity
+        socialSecurity:TaxDict.FilingBracket = self.taxes.federal.fica.ss.single # Use Single value
         
         self.ssIns = np.zeros((self.numInd,self.years))
 
-        """GET INDEX OF COLLECTION YEAR AND AT 60"""
-        prevYrs = max([len(prevSal) for prevSal in sal.prevSal])
-
-        colYrs = np.zeros(self.numInd)
-        yrAt60 = np.zeros(self.numInd).astype(int)
-        yrAt62 = np.zeros(self.numInd).astype(int)
         for i in range(self.numInd):
-            colYrs[i] = ss.collectionAge[i] - base.baseAges[i]
-            yrAt60[i] = 60 - base.baseAges[i] + prevYrs
-            yrAt62[i] = 62 - base.baseAges[i] + prevYrs
-       
-            if yrAt60[i] > self.years:
+            prevSal = sal.prevSal.iloc[:,i][~pd.isna(sal.prevSal.iloc[:,i])]
+
+            ## GET INDEX OF COLLECTION YEAR AND AT 60
+            prevYrs = len(prevSal)
+            colYrs = (ss.collectionAge[i] - base.baseAges[i]).astype(int)
+            yrAt60 = (60 - base.baseAges[i] + prevYrs).astype(int)
+            yrAt62 = (62 - base.baseAges[i] + prevYrs).astype(int)
+            
+            # If not turning 60
+            if yrAt60 > self.years + prevYrs:
                 return
+                
+            ## GET WAGE INDEX BASED ON FWD AND BKWD INFLATION
+            wageInflation = np.concatenate([[np.random.normal(sal.wageInd,sal.wageDev) for _ in range(prevYrs)],self.inflation])
+            wageIndex = np.zeros(self.years+prevYrs)
+            ssMaxSal = np.zeros(np.shape(wageIndex))
+
+            # Set "current year" to base wage index and max sal
+            wageIndex[prevYrs] = ss.wageIndex
+            ssMaxSal[prevYrs] = socialSecurity.maxSal
+
+            # Interpolate wage index and max sal backwards and forwards
+            wageIndex = propagate(wageIndex)
+            ssMaxSal = propagate(ssMaxSal)
+
+            wageAt60 = wageIndex[yrAt60]
+            ssMaxAt60 = ssMaxSal[yrAt60]
+
+            ## ADJUST BEND POINTS FOR CALCULATING TOTAL BENEFITS
+            bendPts = np.zeros((self.years+prevYrs,len(ss.bendPts)))
+            bendPts[prevYrs,:] = ss.bendPts
+            bendPts = propagate(bendPts)
+
+            bendPtsAt62 = bendPts[yrAt62,:]
+
+            ## GET AWI BASED ON YEAR TURNED 60
+            awi = np.ones(np.shape(wageIndex))
+            awi[:yrAt60] = (wageAt60 / wageIndex[:yrAt60])
             
-        """GET WAGE INDEX BASED ON FWD AND BKWD INFLATION"""
-        wageGrowth = [np.random.normal(sal.wageInd,sal.wageDev) for _ in range(self.years+prevYrs)]
-        wageIndex = np.zeros((self.numInd,self.years+prevYrs))
-        wageAt60 = np.zeros(self.numInd)
+            ## GET ADJUSTED WAGES
+            adjustedWages = np.ones(np.shape(wageIndex)) * ssMaxAt60
 
-        ssMaxSal = np.zeros(np.shape(wageIndex))
-        ssMaxAt60 = np.zeros(self.numInd)
-        for i in range(self.numInd):
-            wageIndex[i,prevYrs] = ss.wageIndex
-            ssMaxSal[i,prevYrs] = socialSecurity.maxSal
-
-            for j in range(prevYrs-1,-1,-1): # previous years
-                wageIndex[i,j] = wageIndex[i,j+1] / (1+wageGrowth[j])
-                ssMaxSal[i,j] = ssMaxSal[i,j+1] / (1+wageGrowth[j])
-
-            for j in range(prevYrs+1,self.years): # future years
-                wageIndex[i,j] = wageIndex[i,j-1] * (1+wageGrowth[j])
-                ssMaxSal[i,j] = ssMaxSal[i,j-1] * (1+wageGrowth[j])
-
-            wageAt60[i] = wageIndex[i,yrAt60[i]]
-            ssMaxAt60[i] = ssMaxSal[i,yrAt60[i]]
-
-        """ADJUST""" 
-        bendPts = np.zeros((self.years+prevYrs,len(ss.bendPts)))
-        bendPts[prevYrs,:] = ss.bendPts
-        for j in range(prevYrs-1,-1,-1): # previous years
-            bendPts[j,:] = bendPts[j+1,:] / (1+wageGrowth[j])
-
-        for j in range(prevYrs+1,self.years): # future years
-            bendPts[j,:] = bendPts[j-1,:] * (1+wageGrowth[j])
-
-        bendPtsAt62 = np.zeros((self.numInd,len(ss.bendPts)))
-        for i in range(self.numInd):
-            bendPtsAt62[i,:] = bendPts[yrAt62[i],:]
-
-        """GET AWI BASED ON YEAR TURNED 60"""
-        awi = np.zeros(np.shape(wageIndex))
-        for i in range(self.numInd):
-            for j in range(yrAt60[i]-1,-1,-1):
-                awi[i,j] = wageAt60[i] / wageIndex[i,j]
-
-            for j in range(yrAt60[i],self.years+prevYrs):
-                awi[i,j] = 1
-        
-        """GET ADJUSTED WAGES"""
-        adjustedWages = np.zeros(np.shape(wageIndex))
-        ssWages = np.zeros((self.numInd,35))
-        aime = np.zeros(self.numInd)
-        primIns = np.zeros(self.numInd)
-        for i in range(self.numInd):
-            for j in range(prevYrs):
-                adjustedWages[i,j] = sal.prevSal[i][j] * awi[i,j] if sal.prevSal[i][j] * awi[i,j] <= ssMaxAt60[i] else ssMaxAt60[i]
+            adjWagesRaw_bkwd = prevSal.iloc[:prevYrs] * awi[:prevYrs]
+            adjIndex_bkwd    = adjWagesRaw_bkwd <= ssMaxAt60
+            adjustedWages[:prevYrs][adjIndex_bkwd] = adjWagesRaw_bkwd[adjIndex_bkwd]
             
-            for j in range(self.years):
-                adjustedWages[i,j+prevYrs] = self.vars.salary.salary[i][j] * awi[i,j+prevYrs] if self.vars.salary.salary[i][j] * awi[i,j+prevYrs] <= ssMaxAt60[i] else ssMaxAt60[i]
+            adjWagesRaw_fwd = sal.salary[i] * awi[prevYrs:]
+            adjIndex_fwd    = adjWagesRaw_fwd <= ssMaxAt60
+            adjustedWages[prevYrs:][adjIndex_fwd] = adjWagesRaw_fwd[adjIndex_fwd]
 
-            ssWages[i,:] = np.sort(adjustedWages[i])[-35:]
-            aime[i] = np.average(ssWages[i]) / 12
-            
-            """BEND POINTS"""
+            # Get 35 highest paid years and average monthly earnings (AIME)
+            ssWages = np.sort(adjustedWages)[-35:]
+            aime    = np.average(ssWages) / 12
+            primIns = 0
+
+            ## BEND POINTS
             maxBracket = 0
             for k in range(len(ss.bendPerc)):
                 minBracket = maxBracket
-                maxBracket = bendPtsAt62[i,k]
+                maxBracket = bendPtsAt62[k]
                 rateBracket = ss.bendPerc[k]
                 
-                if aime[i] > maxBracket:
-                    primIns[i] += (maxBracket - minBracket) * rateBracket
-                elif aime[i] > minBracket:
-                    primIns[i] += (aime[i] - minBracket) * rateBracket
-            
-            """COLA Adjustments"""
-            for j in range(int(colYrs[i]),self.years):
-                self.ssIns[i,j] = primIns[i] if j == colYrs[i] else self.ssIns[i,j-1] * (1+wageGrowth[j+prevYrs])
+                if aime > maxBracket:
+                    primIns += (maxBracket - minBracket) * rateBracket
+                elif aime > minBracket:
+                    primIns += (aime - minBracket) * rateBracket
+                        
+            self.ssIns[i,colYrs:] = primIns
 
-            """FULL RETIREMENT AGE ADJUSTMENTS"""
+            ## FULL RETIREMENT AGE ADJUSTMENTS
             earlyClaim = 0
             lateClaim = 0
             if ss.collectionAge[i] < ss.fullRetAge:
@@ -229,14 +219,18 @@ class Setup:
                 if (lateClaim > 36):
                     lateClaim = 36
             
-            for j in range(colYrs[i].astype(int),self.years):
+            for j in range(colYrs,self.years):
                 if (earlyClaim > 36):
                     self.ssIns[i,j] -= ((36 * ss.earlyRetAge[0]) * self.ssIns[i,j]) + (((earlyClaim - 36) * ss.earlyRetAge[1]) * self.ssIns[i,j])
                 else:
                     self.ssIns[i,j] -= (earlyClaim * ss.earlyRetAge[0]) * self.ssIns[i,j]
             
                 self.ssIns[i,j] += (lateClaim * ss.lateRetAge) * self.ssIns[i,j]
-        
+            
+            ## COLA Adjustments
+            for j in range(colYrs+1,self.years):
+                self.ssIns[i,j] = self.ssIns[i,j-1] * (1 + wageInflation[j+prevYrs])
+                
         self.ssIns *= 12
 
-        pd.DataFrame(self.ssIns.transpose(),index=np.arange(self.years)).to_csv('Outputs/SocialSecurity.csv')
+        # pd.DataFrame(self.ssIns.transpose(),index=np.arange(self.years)).to_csv('Outputs/SocialSecurity.csv')
