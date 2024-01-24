@@ -28,9 +28,6 @@ class Main:
         self.vars = Vars()
         self.taxDict = TaxDict()
 
-        setup = Setup(self.vars, self.taxDict)
-        self.vars = setup.run()
-
         loans = Loans(self.vars)
         self.vars = loans.run()
         """
@@ -47,39 +44,35 @@ class Main:
         self.toc = time()
         print('Done: ',str(self.toc-self.tic))
 
+    def getTotal(self,summary):
+        total = 0
+        endVal = []
+        for i,val in enumerate(summary):
+            endVal.append(np.sum(val.iloc[-1,:]))
+
+            if i == 0:
+                total = val
+            else:
+                total += val
+
+        avg = total / self.vars.base.loops
+
+        return avg,endVal
+    
     def executeSingle(self):
-        def getTotal(summary):
-            total = 0
-            endVal = []
-            for i,val in enumerate(summary):
-                endVal.append(np.sum(val.iloc[-1,:]))
-
-                if i == 0:
-                    total = val
-                else:
-                    total += val
-
-            return total,endVal
-        
         outputs = self.loop()
         
-        total,self.totalSavings = getTotal(outputs['totalSavings'])
-        self.avgTotalSavings = total / (self.vars.base.loops / mp.cpu_count())
+        self.avgTotalSavings,self.totalSavings = self.getTotal(outputs['totalSavings'])
+        self.avgTotalSavings *= mp.cpu_count()
 
-    def executeMulti(self):
-        def getTotal(summary):
-            total = 0
-            endVal = []
-            for i,val in enumerate(summary):
-                endVal.append(np.sum(val.iloc[-1,:]))
+        self.avgTotalExpenses,_ = self.getTotal(outputs['totalExpenses'])
+        self.avgTotalExpenses *= mp.cpu_count()
 
-                if i == 0:
-                    total = val
-                else:
-                    total += val
+        self.avgTotalExpenses.to_csv('Outputs/Expenses.csv') 
+        self.avgTotalSavings.to_csv('Outputs/Savings.csv')    
 
-            return total,endVal
-        
+    def executeMulti(self):  
+        self.allVars = []      
         self.allSavings = []
         self.allExpenses = []
         with Pool(processes=mp.cpu_count()) as pool:
@@ -91,13 +84,12 @@ class Main:
             [r.wait() for r in results]
             for r in results:
                 result = r.get()
+                self.allVars.extend(result['totalVars'])
                 self.allSavings.extend(result['totalSavings'])
                 self.allExpenses.extend(result['totalExpenses'])
 
-        total,self.totalSavings = getTotal(self.allSavings)
-        self.avgTotalSavings = total / self.vars.base.loops
-        total,_ = getTotal(self.allExpenses)
-        self.avgTotalExpenses = total / self.vars.base.loops
+        self.avgTotalSavings,self.totalSavings = self.getTotal(self.allSavings)
+        self.avgTotalExpenses,_ = self.getTotal(self.allExpenses)
 
         self.avgTotalSavings.to_csv('Outputs/Savings.csv')      
         self.avgTotalExpenses.to_csv('Outputs/Expenses.csv')      
@@ -106,11 +98,15 @@ class Main:
         self.toc = time()
         outputs = {}
 
+        totalVars = []
         totalExpenses = []
         totalSavings = []
 
         loops = int(np.ceil(self.vars.base.loops / mp.cpu_count()))
         for i in range(loops):
+            setup = Setup(self.vars, self.taxDict)
+            self.vars = setup.run()
+
             expenses = Expenses(self.vars)
             self.vars = expenses.run()
             """
@@ -126,16 +122,16 @@ class Main:
             """
             Add Medicare expenses to health
             Account for std deduction when retired
-            Only tax earnings in traditional 401
-            Add underflow/overflow
             """
 
+            totalVars.append(self.vars)
             totalSavings.append(self.vars.taxes.savings)
             totalExpenses.append(self.vars.expenses.totalExpenses)
 
             print('Loop ',str(i+1),'/',str(loops),' done: ',str(time()-self.toc))
             self.toc = time()
 
+        outputs['totalVars'] = totalVars
         outputs['totalSavings'] = totalSavings
         outputs['totalExpenses'] = totalExpenses
 
@@ -153,7 +149,7 @@ if __name__ == '__main__':
     #     main = pickle.load(file)
 
     print('Max net worth:   ',f'{np.max(np.sum(main.avgTotalSavings,axis=1)/main.vars.salary.summedInflation):,.0f}')
-    print('Final net worth: ',f'{np.max(np.sum(main.avgTotalSavings.iloc[-1,:])/main.vars.salary.summedInflation[-1]):,.0f}')
+    print('Final net worth: ',f'{np.sum(main.avgTotalSavings.iloc[-1,:])/main.vars.salary.summedInflation[-1]:,.0f}')
 
     plt.figure()
     n = len(main.avgTotalSavings.columns)
@@ -177,3 +173,5 @@ if __name__ == '__main__':
     # for acc,accType in accountType.items():
     #     main.allSavings
     #     plt.hist()
+
+    print('')
