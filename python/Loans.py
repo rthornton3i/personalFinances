@@ -1,9 +1,11 @@
+from Vars import Vars
+
 import numpy as np
 import matplotlib.pyplot as plt
 
 class Loans:
-    def __init__(self, vars):
-        self.vars = vars
+    def __init__(self, vars:Vars):
+        self.vars:Vars = vars
         self.years = vars.base.years
     
     def run(self):

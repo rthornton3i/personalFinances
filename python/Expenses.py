@@ -1,12 +1,12 @@
+from Vars import Vars
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-from Vars import Vars
-
 class Expenses:
-    def __init__(self, vars):
-        self.vars = vars
+    def __init__(self,vars:Vars):
+        self.vars:Vars = vars
         
         self.years = vars.base.years
         self.numInd = vars.base.numInd
@@ -24,10 +24,9 @@ class Expenses:
         self.childInflation = vars.children.childInflation
     
     def run(self):
-        exp =  self.vars.expenses
-        exps = [e for e in dir(exp) if not e.startswith('__') and not callable(getattr(exp, e)) and hasattr(getattr(exp,e),'allocation')]
+        exp = self.vars.expenses
 
-        exp.totalExpenses = pd.DataFrame(0,index=np.arange(self.years),columns=exps)
+        exp.totalExpenses = pd.DataFrame(0,index=np.arange(self.years),columns=exp.exps)
 
         exp.totalExpenses.house += self.rentExp()
         exp.totalExpenses.house += self.housingExp()
@@ -49,8 +48,6 @@ class Expenses:
         
         exp.totalExpenses.major = self.majExp()
         exp.totalExpenses.random = self.randExp()
-
-        exp.total = np.sum(exp.totalExpenses,axis=0)
 
         self.vars.benefits.health.hsaDeposit = self.hsaDeposit
 
@@ -83,7 +80,7 @@ class Expenses:
         return total
     
     def housingExp(self):
-        house:Vars.Expenses.House = self.vars.expenses.house
+        house = self.vars.expenses.house
         
         total = np.zeros(self.years)
         
@@ -104,7 +101,7 @@ class Expenses:
         return total
     
     def loanExp(self):
-        loans:Vars.Expenses.Loans = self.vars.expenses.loans
+        loans = self.vars.expenses.loans
         
         total = np.zeros(self.years)
 
@@ -115,7 +112,7 @@ class Expenses:
         return total
     
     def carExp(self):     
-        cars:Vars.Expenses.Cars = self.vars.expenses.cars
+        cars = self.vars.expenses.cars
         
         total = np.zeros(self.years)
 
@@ -136,7 +133,7 @@ class Expenses:
         return total
     
     def foodExp(self):        
-        food:Vars.Expenses.Food = self.vars.expenses.food
+        food = self.vars.expenses.food
         
         total = np.zeros(self.years)
 
@@ -148,7 +145,7 @@ class Expenses:
         return total
     
     def shopExp(self):
-        shop:Vars.Expenses.Shopping = self.vars.expenses.shopping
+        shop = self.vars.expenses.shopping
         
         total = np.zeros(self.years)
 
@@ -160,7 +157,7 @@ class Expenses:
         return total
         
     def activityExp(self):
-        act:Vars.Expenses.Activities = self.vars.expenses.activities
+        act = self.vars.expenses.activities
         
         total = np.zeros(self.years)
 
@@ -172,7 +169,7 @@ class Expenses:
         return total
 
     def subsExp(self):
-        subscriptions:Vars.Expenses.Subscriptions = self.vars.expenses.subscriptions
+        subscriptions = self.vars.expenses.subscriptions
         
         total = np.zeros(self.years)
         
@@ -184,7 +181,7 @@ class Expenses:
         return total
     
     def personalExp(self):
-        personalCare:Vars.Expenses.PersonalCare = self.vars.expenses.personalCare
+        personalCare = self.vars.expenses.personalCare
         
         total = np.zeros(self.years)
         
@@ -196,8 +193,8 @@ class Expenses:
         return total
     
     def healthExp(self):
-        health:Vars.Expenses.Healthcare = self.vars.expenses.healthcare
-        healthBen:Vars.Benefits.Health = self.vars.benefits.health
+        health = self.vars.expenses.healthcare
+        healthBen = self.vars.benefits.health
 
         total = np.zeros((self.iters,self.years))
         self.hsaDeposit = np.zeros((self.iters,self.years))
@@ -254,7 +251,7 @@ class Expenses:
         return np.sum(total, 0)
     
     def petExp(self):
-        pet:Vars.Expenses.Pet = self.vars.expenses.pet
+        pet = self.vars.expenses.pet
         
         total = np.zeros(self.years)
         
@@ -320,7 +317,13 @@ class Expenses:
         
         for i in range(self.years):
             for _, event in major.majorSummary.iterrows():
+                expEvent = False
                 if event.purYr == i:
+                    expEvent = True
+                elif event.isRepeat and i >= event.purYr:
+                    expEvent = True
+
+                if expEvent:
                     total[i] += event.cost
         
         return total

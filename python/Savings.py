@@ -1,3 +1,5 @@
+from Vars import Vars
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -5,8 +7,8 @@ from scipy.optimize import minimize
 
 class Savings:
 
-    def __init__(self,vars):
-        self.vars = vars
+    def __init__(self,vars:Vars):
+        self.vars:Vars = vars
         
         self.years = vars.base.years
     

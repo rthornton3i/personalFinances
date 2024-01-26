@@ -6,9 +6,9 @@ import pandas as pd
 
 class Setup:
     
-    def __init__(self,vars,taxes):
-        self.vars = vars
-        self.taxes = taxes
+    def __init__(self,vars:Vars,taxes:TaxDict):
+        self.vars:Vars = vars
+        self.taxes:TaxDict = taxes
         
         self.years = vars.base.years
         self.numInd = vars.base.numInd
@@ -24,8 +24,8 @@ class Setup:
 
         # Ages
         self.ageCalc()
-        child:Vars.Children = self.vars.children
-        base:Vars.Base = self.vars.base
+        child = self.vars.children
+        base = self.vars.base
         base.ages = self.ages
         base.isRetire = self.isRetire
         child.childAges = self.childAges
@@ -33,7 +33,7 @@ class Setup:
         
         # Salary
         self.salaryCalc()
-        sal:Vars.Salary = self.vars.salary 
+        sal = self.vars.salary 
         sal.salary = self.salary
         sal.income = self.income
         sal.grossIncome = self.grossIncome
@@ -48,9 +48,9 @@ class Setup:
         return self.vars
     
     def salaryCalc(self):
-        base:Vars.Base = self.vars.base
-        sal:Vars.Salary = self.vars.salary
-        child:Vars.Children = self.vars.children
+        base = self.vars.base
+        sal = self.vars.salary
+        child = self.vars.children
 
         self.salary = np.zeros((self.numInd,self.years))
 
@@ -77,7 +77,8 @@ class Setup:
                             self.salary[i,j] = self.salary[i,j-1] * (1 + np.random.triangular(sal.salGrowth[0],sal.salGrowth[1],sal.salGrowth[2]))
 
                 ## ACCOUNT FOR BONUS
-                self.salary[i] *= 1 + np.random.triangular(sal.salBonus[0],sal.salBonus[1],sal.salBonus[2])
+                if np.sum(sal.salBonus) > 0:
+                    self.salary[i] *= 1 + np.random.triangular(sal.salBonus[0],sal.salBonus[1],sal.salBonus[2])
         
         ## CALCULATE INCOME BASED ON FILING
         match self.filingType:
@@ -132,10 +133,10 @@ class Setup:
 
             return vals
 
-        base:Vars.Base  = self.vars.base
-        sal:Vars.Salary = self.vars.salary
-        ss:Vars.Benefits.SocialSecurity      = self.vars.benefits.socialSecurity
-        socialSecurity:TaxDict.FilingBracket = self.taxes.federal.fica.ss.single # Use Single value
+        base  = self.vars.base
+        sal = self.vars.salary
+        ss      = self.vars.benefits.socialSecurity
+        socialSecurity = self.taxes.federal.fica.ss.single # Use Single value
         
         self.ssIns = np.zeros((self.numInd,self.years))
 
