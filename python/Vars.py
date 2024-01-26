@@ -63,11 +63,11 @@ class Vars():
 
             inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C:D',nrows=26,names=None)
             
-            self.loops = inputFields.loc['Iterations'].values[0]
-            self.years = inputFields.loc['Years'].values[0]
+            self.loops:int = inputFields.loc['Iterations'].values[0]
+            self.years:int = inputFields.loc['Years'].values[0]
 
-            self.baseAges = inputFields.loc['Ages'].values[0:].astype(int)
-            self.retAges  = inputFields.loc['Retirement Age'].values[0:].astype(int)
+            self.baseAges:list[int] = inputFields.loc['Ages'].values[0:].astype(int)
+            self.retAges:list[int]  = inputFields.loc['Retirement Age'].values[0:].astype(int)
             
             self.numInd = len(self.baseAges)
 
@@ -80,8 +80,8 @@ class Vars():
 
             inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=26,names=None)
             
-            self.filingType  = inputFields.loc['Filing'].values[0]
-            self.filingState = inputFields.loc['Filing State'].values[0]
+            self.filingType:str  = inputFields.loc['Filing'].values[0]
+            self.filingState:str = inputFields.loc['Filing State'].values[0]
     
     class Salary(Inputs):
         def __init__(self):
@@ -89,17 +89,18 @@ class Vars():
 
             inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=24,names=None).drop(columns=1)
 
-            self.salOpt  = dropnan(inputFields.loc['Salary Option'].values[0:])
-            self.salBase = dropnan(inputFields.loc['Salary'].values[0:])
+            self.salOpt:list[str]    = dropnan(inputFields.loc['Salary Option'].values[0:])
+            self.salBase:list[float] = dropnan(inputFields.loc['Salary'].values[0:])
 
-            self.salGrowth = inputFields.loc['Salary Growth'].values[0:3]
-            self.salBonus  = inputFields.loc['Bonus'].values[0:3]
-            self.promotionChance     = inputFields.loc['Chance of Promotion'].values[0]
-            self.promotionWaitPeriod = inputFields.loc['Promotion Wait Period'].values[0]
-            self.promotionGrowth     = inputFields.loc['Promotion Growth'].values[0:3]
+            self.salGrowth:list[float] = inputFields.loc['Salary Growth'].values[0:3]
+            self.salBonus:list[float]  = inputFields.loc['Bonus'].values[0:3]
 
-            self.wageInd = inputFields.loc['Inflation Average'].values[0]
-            self.wageDev = inputFields.loc['Inflation Std Dev'].values[0]
+            self.promotionChance:float       = inputFields.loc['Chance of Promotion'].values[0]
+            self.promotionWaitPeriod:float   = inputFields.loc['Promotion Wait Period'].values[0]
+            self.promotionGrowth:list[float] = inputFields.loc['Promotion Growth'].values[0:3]
+
+            self.wageInd:float = inputFields.loc['Inflation Average'].values[0]
+            self.wageDev:float = inputFields.loc['Inflation Std Dev'].values[0]
 
             self.salCustom = pd.read_excel(self.file,self.salarySheet,header=None,skiprows=1,index_col=0,names=None) if any([opt.upper() == 'CUSTOM' for opt in self.salOpt]) else None
             self.prevSal = pd.read_excel(self.file,self.pastSalarySheet,header=None,skiprows=1,index_col=0,names=None).sort_index()
@@ -146,6 +147,12 @@ class Vars():
             self.vacation = self.Vacation()
             self.major = self.Major()
             self.random = self.Random()
+
+            self.exps = [e for e in dir(self) if not e.startswith('__') and 
+                                                 not callable(getattr(self, e)) and 
+                                                 hasattr(getattr(self,e),'allocation')]
+
+            self.totalExpenses = []
         
         class Loans(Inputs):
             def __init__(self):
@@ -155,8 +162,13 @@ class Vars():
                                                 names=['loanYr','prin','term','rate']).dropna()
                 
                 self.allocation = getValue(self.file,self.loanSheet,row=2,col='G')
-
+            
                 self.numLoans = self.loanSummary.shape[0]
+
+                self.loanBal = []
+                self.loanPay = []
+                self.loanPrn = []
+                self.loanInt = []
 
         class Cars(Inputs):
             def __init__(self):
@@ -172,8 +184,15 @@ class Vars():
                 self.repairs    = carFields.loc['Repairs'].values[0:]
                 self.fuel       = carFields.loc['Fuel'].values[0]
                 self.ezpass     = carFields.loc['EZ Pass'].values[0]
-
+            
                 self.numCars = self.carSummary.shape[0]
+
+                self.carBal = []
+                self.carPay = []
+                self.carPrn = []
+                self.carInt = []
+                self.carWth = []
+                self.carDwn = []
 
         class Rent(Inputs):
             def __init__(self):
@@ -356,7 +375,7 @@ class Vars():
                 super().__init__()
                 
                 self.majorSummary = pd.read_excel(self.file,self.majorSheet,header=1,usecols='A,C:D',
-                                                  names=['purYr','cost','repeats']).dropna()
+                                                  names=['purYr','cost','isRepeat']).dropna()
                 
                 self.allocation = getValue(self.file,self.majorSheet,row=2,col='G')
         
@@ -441,11 +460,17 @@ class Vars():
                 self.bendPerc = [0.9,0.32,0.15]
                 self.bendPts = [1115,6721,1e9]
                 self.bendSlope = [[0.33,25],[1.99,155]]
+
+                self.ssIns = []
         
     class Taxes:
         def __init__(self):
             self.federal = self.Federal()
             self.state = self.State()
+
+            self.savings = []
+            self.expenses = []
+            self.earnings = self.Earnings()
 
         class Federal:
             def __init__(self):
@@ -520,9 +545,15 @@ class Vars():
                     def __init__(self):
                         pass
     
+        class Earnings:
+            totalTaxes = []
+            totalDeducted = []
+            totalWithheld = []
+
     class Savings():
         def __init__(self):
-            pass
+            self.allocations = []
+            self.earnings = []
     
     class Accounts(Inputs):
         def __init__(self):
