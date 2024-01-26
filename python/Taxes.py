@@ -1,14 +1,15 @@
+from Vars import Vars
+from TaxDict import TaxDict
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import warnings
 
-from Vars import Vars
-
 class Taxes:
-    def __init__(self, vars, taxes):
-        self.vars = vars
-        self.taxes = taxes
+    def __init__(self,vars:Vars,taxes:TaxDict):
+        self.vars:Vars = vars
+        self.taxes:TaxDict = taxes
         
         self.years = vars.base.years
         self.numInd = vars.base.numInd
@@ -39,6 +40,7 @@ class Taxes:
         # General
         self.expenses = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
         self.savings = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
+        self.earnings = self.vars.taxes.earnings
 
         # Retirement
         self.perc401 = np.zeros((self.numInd,self.years))
@@ -121,16 +123,19 @@ class Taxes:
         ##############################
         self.savingsCalc()
         self.vars.taxes.savings = self.savings
+        self.vars.taxes.expenses = self.expenses
+
+        self.earningsReport()
 
         return self.vars
     
     def healthCalc(self):   
-        healthBen:Vars.Benefits.Health = self.vars.benefits.health
-        healthExp:Vars.Expenses.Healthcare = self.vars.expenses.healthcare              
+        healthBen = self.vars.benefits.health
+        healthExp = self.vars.expenses.healthcare              
         
         hsa = np.zeros((self.iters,self.years))
-        fsa = np.zeros((self.iters,self.years))
-        hra = np.zeros((self.iters,self.years))
+        # fsa = np.zeros((self.iters,self.years))
+        # hra = np.zeros((self.iters,self.years))
         medicalPrem = np.zeros((self.iters,self.years))
         # visionPrem  = np.zeros((self.iters,self.years))
         # dentalPrem  = np.zeros((self.iters,self.years))
@@ -151,12 +156,11 @@ class Taxes:
                 hsa[i,j] = min(((healthExp.hsaDeposit * self.summedInflation[j]) * (1 + self.childInflation[j])) + healthBen.hsaDeposit[i,j],hsaLimit)
                 # fsa[i,j] = (healthBen.fsa * self.summedInflation[j]) * (1 + self.childInflation[j])
                 # hra[i,j] = (healthBen.hra * self.summedInflation[j]) * (1 + self.childInflation[j])
-
-                medicalPrem[i,j] = (healthExp.premium * self.summedInflation[j]) * (1 + self.childInflation[j])
+            
+            for j in range(self.years):
+                medicalPrem[i,j] = (healthExp.premium * 12 * self.summedInflation[j]) * (1 + self.childInflation[j])
                 # visionPrem[i,j]  = (healthExp.visionPrem  * self.summedInflation[j]) * (1 + self.childInflation[j])
                 # dentalPrem[i,j]  = (healthExp.dentalPrem  * self.summedInflation[j]) * (1 + self.childInflation[j])
-
-        # Post-retirement
 
         self.healthDed  = hsa
         self.healthBen  = medicalPrem
@@ -422,7 +426,6 @@ class Taxes:
         self.taxableIncomeFed += np.tile(self.stCapGains / self.iters,(self.iters,1))
         
         self.taxableIncomeFed -= np.sum([self.healthDed, 
-                                         self.healthBen,
                                          self.tradCont if self.iters == self.numInd else np.tile(np.sum(self.tradCont,axis=0),(self.iters,1))],
                                             axis=0)
         
@@ -467,9 +470,9 @@ class Taxes:
     def slTaxCalc(self):
         house = self.vars.expenses.house
         
-        stateTax = np.zeros((self.iters,self.years))
-        localTax = np.zeros((self.iters,self.years))
-        propTax = np.zeros((self.iters,self.years))
+        self.stateTax = np.zeros((self.iters,self.years))
+        self.localTax = np.zeros((self.iters,self.years))
+        self.propTax = np.zeros((self.iters,self.years))
 
         self.saltTaxes = np.zeros((self.iters,self.years))
         
@@ -506,15 +509,15 @@ class Taxes:
                     rateBracket = state.bracketPerc[k]
                     
                     if self.taxableIncomeState[i,j] > maxBracket:
-                        stateTax[i,j] += (maxBracket - minBracket) * rateBracket
+                        self.stateTax[i,j] += (maxBracket - minBracket) * rateBracket
                     elif self.taxableIncomeState[i,j] > minBracket:
-                        stateTax[i,j] += (self.taxableIncomeState[i,j] - minBracket) * rateBracket
+                        self.stateTax[i,j] += (self.taxableIncomeState[i,j] - minBracket) * rateBracket
 
                 
-                localTax[i,j] = self.taxableIncomeState[i,j] * local.localPerc
-                propTax[i,j] = house.houseWth[j] * house.propTax
+                self.localTax[i,j] = self.taxableIncomeState[i,j] * local.localPerc
+                self.propTax[i,j] = house.houseWth[j] * house.propTax
                 
-                self.saltTaxes[i,j] += stateTax[i,j] + localTax[i,j] + propTax[i,j]
+                self.saltTaxes[i,j] += self.stateTax[i,j] + self.localTax[i,j] + self.propTax[i,j]
     
     def fedTaxCalc(self):      
         self.fedTax = np.zeros((self.iters,self.years))
@@ -775,3 +778,25 @@ class Taxes:
 
                         #TAX WITHDRAWALS
                         calculateTaxes()
+    
+    def earningsReport(self):
+        self.earnings.totalTaxes    = pd.DataFrame(np.stack([np.sum(self.fedTax,axis=0), 
+                                                             np.sum(self.ficaTax,axis=0),
+                                                             np.sum(self.stateTax+self.localTax,axis=0),
+                                                             np.sum(self.propTax,axis=0),
+                                                             np.sum(self.capGainsTax,axis=0)],
+                                                             axis=1),
+                                                    index=np.arange(self.years),
+                                                    columns=['Federal','FICA','State','Property','CapGains'])
+        
+        self.earnings.totalDeducted = pd.DataFrame(np.stack([np.sum(self.tradCont,axis=0), 
+                                                             np.sum(self.healthDed,axis=0)],
+                                                             axis=1),
+                                                    index=np.arange(self.years),
+                                                    columns=['Trad401k','HSA'])
+        
+        self.earnings.totalWithheld = pd.DataFrame(np.stack([np.sum(self.rothCont,axis=0),
+                                                             np.sum(self.healthBen,axis=0)],
+                                                             axis=1),
+                                                    index=np.arange(self.years),
+                                                    columns=['Roth401k','MedicalPremium'])

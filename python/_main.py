@@ -14,12 +14,7 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 from multiprocessing import Pool
 from time import time
-
-"""
-from typing import List
-def pick(l: List[int], index: int) -> int:
-    pass
-"""
+from numpy.typing import NDArray
 
 class Main:
     def __init__(self):
@@ -38,26 +33,61 @@ class Main:
         self.toc = time()
         print('Initial setup done: ',str(self.toc-self.tic))
 
-        self.executeSingle()
-        # self.executeMulti()
+        # self.executeSingle()
+        self.executeMulti()
 
         self.toc = time()
         print('Done: ',str(self.toc-self.tic))
 
     def getTotal(self,summary):
-        total = 0
-        endVal = []
+        vals,avgVal = [],[]
         for i,val in enumerate(summary):
-            endVal.append(np.sum(val.iloc[-1,:]))
+            vals.append(np.sum(val.iloc[-1,:]))
 
             if i == 0:
-                total = val
+                avgVal = val
             else:
-                total += val
+                avgVal += val
 
-        avg = total / self.vars.base.loops
+        avgVal /= np.ceil(self.vars.base.loops / mp.cpu_count()) * mp.cpu_count()
 
-        return avg,endVal
+        return avgVal,vals
+    
+    def getField(self,fields:list[str],filename:str=None,inflation:NDArray=None):
+        vals = []
+        avgVal:NDArray = []
+        for i,vars in enumerate(self.allVars):
+            obj = vars
+            for field in fields:
+                obj = getattr(obj,field)
+
+            vals.append(obj)
+            if i == 0:
+                avgVal = obj
+            else:
+                avgVal += obj
+
+        avgVal /= np.ceil(self.vars.base.loops / mp.cpu_count()) * mp.cpu_count()
+        
+        if inflation is None:
+            inflation = np.ones(self.vars.base.years)
+
+        if len(np.shape(inflation)) != len(np.shape(avgVal)):
+            inflation = np.array([inflation])
+
+        if np.shape(inflation).index(self.vars.base.years) != np.shape(avgVal).index(self.vars.base.years):
+            inflation = inflation.transpose()
+
+        avgVal /= inflation
+
+        if not filename is None:
+            match type(avgVal):
+                case pd.DataFrame:
+                    avgVal.to_csv('Outputs/' + filename)
+                case NDArray:
+                    pd.DataFrame(avgVal.transpose(),index=np.arange(self.vars.base.years)).to_csv('Outputs/' + filename)
+
+        return avgVal,vals
     
     def executeSingle(self):
         outputs = self.loop()
@@ -88,8 +118,17 @@ class Main:
                 self.allSavings.extend(result['totalSavings'])
                 self.allExpenses.extend(result['totalExpenses'])
 
+        # Get Fields
+        self.avgInflation,self.summedInflation = self.getField(['salary','summedInflation'],'Inflation.csv')
+        self.avgSalary,self.salary = self.getField(['salary','salary'],'Salary.csv')
+        self.avgSocialSecurity,self.socialSecurity = self.getField(['benefits','socialSecurity','ssIns'],'SocialSecurity.csv')
+                                    
+        # Get Summary
         self.avgTotalSavings,self.totalSavings = self.getTotal(self.allSavings)
         self.avgTotalExpenses,_ = self.getTotal(self.allExpenses)
+        self.avgTaxes,_ = self.getField(['taxes','earnings','totalTaxes'],'Taxes.csv')
+        self.avgDeductions,_ = self.getField(['taxes','earnings','totalDeducted'],'Deductions.csv')
+        self.avgWithholdings,_ = self.getField(['taxes','earnings','totalWithheld'],'Withholdings.csv')
 
         self.avgTotalSavings.to_csv('Outputs/Savings.csv')      
         self.avgTotalExpenses.to_csv('Outputs/Expenses.csv')      
@@ -148,8 +187,8 @@ if __name__ == '__main__':
     # with open('Inputs/main.pkl', 'rb') as file:
     #     main = pickle.load(file)
 
-    print('Max net worth:   ',f'{np.max(np.sum(main.avgTotalSavings,axis=1)/main.vars.salary.summedInflation):,.0f}')
-    print('Final net worth: ',f'{np.sum(main.avgTotalSavings.iloc[-1,:])/main.vars.salary.summedInflation[-1]:,.0f}')
+    print('Max net worth:   ',f'{np.max(np.sum(main.avgTotalSavings,axis=1)):,.0f}')#/main.avgInflation
+    print('Final net worth: ',f'{np.sum(main.avgTotalSavings.iloc[-1,:]):,.0f}')#/main.avgInflation[-1]
 
     plt.figure()
     n = len(main.avgTotalSavings.columns)
@@ -161,10 +200,10 @@ if __name__ == '__main__':
     plt.figure()
     std = np.std(main.totalSavings)
     avg = np.mean(main.totalSavings)
-    plt.hist(main.totalSavings/main.vars.salary.summedInflation[-1],
+    plt.hist(main.totalSavings,#/main.avgInflation[-1],
              bins=max(1,int(main.vars.base.loops/20)),
              rwidth=0.9,
-             range=(avg-2*std,avg+3*std)/main.vars.salary.summedInflation[-1])
+             range=(avg-2*std,avg+3*std))#/main.avgInflation[-1])
     plt.show()
 
     # plt.figure()
