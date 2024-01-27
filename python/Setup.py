@@ -36,7 +36,6 @@ class Setup:
         sal = self.vars.salary 
         sal.salary = self.salary
         sal.income = self.income
-        sal.grossIncome = self.grossIncome
         sal.inflation = self.inflation
         sal.summedInflation = self.summedInflation
         child.childInflation = self.childInflation
@@ -84,8 +83,6 @@ class Setup:
         match self.filingType:
             case "JOINT":   self.income = np.array([np.sum(self.salary,0)])
             case _:         self.income = self.salary
-            
-        self.grossIncome = np.sum(self.salary,0)
 
         ## CALCULATE INFLATION
         self.inflation = [np.random.normal(sal.wageInd,sal.wageDev) for _ in range(self.years)]

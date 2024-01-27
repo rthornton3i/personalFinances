@@ -14,7 +14,10 @@ import matplotlib.pyplot as plt
 import multiprocessing as mp
 from multiprocessing import Pool
 from time import time
+import os
+
 from numpy.typing import NDArray
+from pandas import DataFrame
 
 class Main:
     def __init__(self):
@@ -33,8 +36,8 @@ class Main:
         self.toc = time()
         print('Initial setup done: ',str(self.toc-self.tic))
 
-        # self.executeSingle()
-        self.executeMulti()
+        self.executeSingle()
+        # self.executeMulti()
 
         self.toc = time()
         print('Done: ',str(self.toc-self.tic))
@@ -45,7 +48,7 @@ class Main:
             vals.append(np.sum(val.iloc[-1,:]))
 
             if i == 0:
-                avgVal = val
+                avgVal = np.copy(val)
             else:
                 avgVal += val
 
@@ -56,6 +59,8 @@ class Main:
     def getField(self,fields:list[str],filename:str=None,inflation:NDArray=None):
         vals = []
         avgVal:NDArray = []
+
+        # Get Data
         for i,vars in enumerate(self.allVars):
             obj = vars
             for field in fields:
@@ -63,12 +68,13 @@ class Main:
 
             vals.append(obj)
             if i == 0:
-                avgVal = obj
+                avgVal = np.copy(obj)
             else:
                 avgVal += obj
 
-        avgVal /= np.ceil(self.vars.base.loops / mp.cpu_count()) * mp.cpu_count()
+        avgVal /= len(vals)
         
+        # Add Inflation
         if inflation is None:
             inflation = np.ones(self.vars.base.years)
 
@@ -80,7 +86,15 @@ class Main:
 
         avgVal /= inflation
 
+        # Write Output
         if not filename is None:
+            # Manage filename
+            path = os.path.join(*os.path.normpath('Outputs/' + filename).split(os.sep)[:-1])
+
+            if not os.path.isdir(path):
+                os.mkdir(path)
+
+            # Manage Data Type
             match type(avgVal):
                 case pd.DataFrame:
                     avgVal.to_csv('Outputs/' + filename)
@@ -120,18 +134,22 @@ class Main:
 
         # Get Fields
         self.avgInflation,self.summedInflation = self.getField(['salary','summedInflation'],'Inflation.csv')
-        self.avgSalary,self.salary = self.getField(['salary','salary'],'Salary.csv')
-        self.avgSocialSecurity,self.socialSecurity = self.getField(['benefits','socialSecurity','ssIns'],'SocialSecurity.csv')
-                                    
+        self.avgSalary,_ = self.getField(['salary','salary'],'Income/Salary.csv')
+        self.avgSS,_ = self.getField(['benefits','socialSecurity','ssIns'],'Income/SocialSecurity.csv')
+
+        self.avgRetire,_ = self.getField(['taxes','earnings','retireIncome'],'Accounts/401ks.csv')
+        self.avgCapGains,_ = self.getField(['taxes','earnings','capitalGains'],'Accounts/CapitalGains.csv')
+
+        self.avgTaxes,_ = self.getField(['taxes','earnings','totalTaxes'],'Expense/Taxes.csv')
+        self.avgDeductions,_ = self.getField(['taxes','earnings','totalDeducted'],'Expense/Deductions.csv')
+        self.avgWithholdings,_ = self.getField(['taxes','earnings','totalWithheld'],'Expense/Withholdings.csv')
+
         # Get Summary
         self.avgTotalSavings,self.totalSavings = self.getTotal(self.allSavings)
         self.avgTotalExpenses,_ = self.getTotal(self.allExpenses)
-        self.avgTaxes,_ = self.getField(['taxes','earnings','totalTaxes'],'Taxes.csv')
-        self.avgDeductions,_ = self.getField(['taxes','earnings','totalDeducted'],'Deductions.csv')
-        self.avgWithholdings,_ = self.getField(['taxes','earnings','totalWithheld'],'Withholdings.csv')
 
         self.avgTotalSavings.to_csv('Outputs/Savings.csv')      
-        self.avgTotalExpenses.to_csv('Outputs/Expenses.csv')      
+        self.avgTotalExpenses.to_csv('Outputs/Expense/Expenses.csv')      
 
     def loop(self):
         self.toc = time()

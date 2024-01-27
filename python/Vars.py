@@ -1,6 +1,9 @@
 import pandas as pd
 import numpy as np
 
+from numpy.typing import NDArray
+from pandas import DataFrame
+
 class Inputs():
     file = 'Inputs/Inputs_ThorntonParents.xlsx'
 
@@ -71,8 +74,8 @@ class Vars():
             
             self.numInd = len(self.baseAges)
 
-            self.ages = []
-            self.isRetire = []            
+            self.ages:list[int]
+            self.isRetire:list[bool]
     
     class Filing(Inputs):
         def __init__(self):
@@ -82,6 +85,8 @@ class Vars():
             
             self.filingType:str  = inputFields.loc['Filing'].values[0]
             self.filingState:str = inputFields.loc['Filing State'].values[0]
+
+            self.iters:int
     
     class Salary(Inputs):
         def __init__(self):
@@ -105,11 +110,10 @@ class Vars():
             self.salCustom = pd.read_excel(self.file,self.salarySheet,header=None,skiprows=1,index_col=0,names=None) if any([opt.upper() == 'CUSTOM' for opt in self.salOpt]) else None
             self.prevSal = pd.read_excel(self.file,self.pastSalarySheet,header=None,skiprows=1,index_col=0,names=None).sort_index()
 
-            self.salary = []
-            self.income = []
-            self.grossIncome = []
-            self.inflation = []
-            self.summedInflation = []
+            self.salary:list[float]
+            self.income:list[float]
+            self.inflation:list[float]
+            self.summedInflation:list[float]
     
     class Children(Inputs):
         def __init__(self):
@@ -121,9 +125,9 @@ class Vars():
             self.maxChildYr        = inputFields.loc['Max Age of Childcare'].values[0]
             self.childInflationVal = inputFields.loc['Child Inflation'].values[0]
 
-            self.childAges = []
-            self.isKids = []
-            self.childInflation = []
+            self.childAges:list[int]
+            self.isKids:list[int]
+            self.childInflation:list[float]
 
     class Expenses:
         def __init__(self):
@@ -152,7 +156,7 @@ class Vars():
                                                  not callable(getattr(self, e)) and 
                                                  hasattr(getattr(self,e),'allocation')]
 
-            self.totalExpenses = []
+            self.totalExpenses:DataFrame
         
         class Loans(Inputs):
             def __init__(self):
@@ -165,10 +169,10 @@ class Vars():
             
                 self.numLoans = self.loanSummary.shape[0]
 
-                self.loanBal = []
-                self.loanPay = []
-                self.loanPrn = []
-                self.loanInt = []
+                self.loanBal:list[float]
+                self.loanPay:list[float]
+                self.loanPrn:list[float]
+                self.loanInt:list[float]
 
         class Cars(Inputs):
             def __init__(self):
@@ -187,12 +191,12 @@ class Vars():
             
                 self.numCars = self.carSummary.shape[0]
 
-                self.carBal = []
-                self.carPay = []
-                self.carPrn = []
-                self.carInt = []
-                self.carWth = []
-                self.carDwn = []
+                self.carBal:list[float]
+                self.carPay:list[float]
+                self.carPrn:list[float]
+                self.carInt:list[float]
+                self.carWth:list[float]
+                self.carDwn:list[float]
 
         class Rent(Inputs):
             def __init__(self):
@@ -233,12 +237,12 @@ class Vars():
                         
                 self.numHouses = self.houseSummary.shape[0]
 
-                self.houseBal = []
-                self.housePay = []
-                self.housePrn = []
-                self.houseInt = []
-                self.houseWth = []
-                self.houseDwn = []
+                self.houseBal:list[float]
+                self.housePay:list[float]
+                self.housePrn:list[float]
+                self.houseInt:list[float]
+                self.houseWth:list[float]
+                self.houseDwn:list[float]
             
         class Food(Inputs):
             def __init__(self):
@@ -549,6 +553,8 @@ class Vars():
             totalTaxes = []
             totalDeducted = []
             totalWithheld = []
+            retireIncome = []
+            capitalGains = []
 
     class Savings():
         def __init__(self):
