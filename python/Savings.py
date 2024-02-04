@@ -57,7 +57,7 @@ class Savings:
                 values = [np.random.normal(mu[j],sigma[j]) for j in range(self.years)]
             
             match str(accounts.accountSummary.accountType[acc.name]).upper():
-                case 'SAVINGS': values = [0 if v < 0 else v for v in values]
+                case 'SAVINGS'|'DIVIDEND': values = [0 if v < 0 else v for v in values]
             
             values = [-0.99 if v <= -1 else v for v in values]
 

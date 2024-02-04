@@ -185,7 +185,7 @@ class Expenses:
         
         total = np.zeros(self.years)
         
-        persExps = (personalCare.clothing + personalCare.shoes + personalCare.hair + personalCare.makeup + personalCare.other) * 12
+        persExps = (personalCare.clothing + personalCare.shoes + personalCare.hair + personalCare.other) * 12
         for i in range(self.years):
             persExps *= 1 + self.inflation[i]
             total[i] = persExps * (1 + self.childInflation[i])
