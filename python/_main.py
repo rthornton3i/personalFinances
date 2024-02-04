@@ -36,8 +36,17 @@ class Main:
         self.toc = time()
         print('Initial setup done: ',str(self.toc-self.tic))
 
-        self.executeSingle()
-        # self.executeMulti()
+        with open("Outputs/NetWorth.csv",'w') as f:
+            for age in range(62,71):
+                self.vars.benefits.socialSecurity.collectionAge = [age,age]
+
+                # self.executeSingle()
+                self.executeMulti()
+
+                print(age)
+                val = np.sum(self.avgTotalSavings.iloc[-1,:])
+                print('Final net worth: ',f'{val:,.0f}')
+                f.write(str(age) + ',' + str(val) + str(np.percentile(self.totalSavings,25)) + str(np.percentile(self.totalSavings,75)) + '\n')
 
         self.toc = time()
         print('Done: ',str(self.toc-self.tic))
@@ -52,7 +61,7 @@ class Main:
             else:
                 avgVal += val
 
-        avgVal /= np.ceil(self.vars.base.loops / mp.cpu_count()) * mp.cpu_count()
+        avgVal /= len(vals)
 
         return avgVal,vals
     
@@ -137,14 +146,17 @@ class Main:
         self.avgSalary,_ = self.getField(['salary','salary'],'Income/Salary.csv')
         self.avgSS,_ = self.getField(['benefits','socialSecurity','ssIns'],'Income/SocialSecurity.csv')
 
-        self.avgRetire,_ = self.getField(['taxes','earnings','retireIncome'],'Accounts/401ks.csv')
-        self.avgCapGains,_ = self.getField(['taxes','earnings','capitalGains'],'Accounts/CapitalGains.csv')
+        self.avgRetire,_ = self.getField(['savings','reports','retireIncome'],'Accounts/401ks.csv')
+        self.avgCapGains,_ = self.getField(['savings','reports','capitalGains'],'Accounts/CapitalGains.csv')
 
-        self.avgTaxes,_ = self.getField(['taxes','earnings','totalTaxes'],'Expense/Taxes.csv')
-        self.avgDeductions,_ = self.getField(['taxes','earnings','totalDeducted'],'Expense/Deductions.csv')
-        self.avgWithholdings,_ = self.getField(['taxes','earnings','totalWithheld'],'Expense/Withholdings.csv')
+        self.avgTaxes,_ = self.getField(['savings','reports','totalTaxes'],'Expense/Taxes.csv')
+        self.avgDeductions,_ = self.getField(['savings','reports','totalDeducted'],'Expense/Deductions.csv')
+        self.avgWithholdings,_ = self.getField(['savings','reports','totalWithheld'],'Expense/Withholdings.csv')
 
         # Get Summary
+        self.savings = pd.concat(self.allSavings)
+        self.savings = self.savings.groupby(self.savings.index)
+
         self.avgTotalSavings,self.totalSavings = self.getTotal(self.allSavings)
         self.avgTotalExpenses,_ = self.getTotal(self.allExpenses)
 
@@ -182,7 +194,7 @@ class Main:
             """
 
             totalVars.append(self.vars)
-            totalSavings.append(self.vars.taxes.savings)
+            totalSavings.append(self.vars.savings.savings)
             totalExpenses.append(self.vars.expenses.totalExpenses)
 
             print('Loop ',str(i+1),'/',str(loops),' done: ',str(time()-self.toc))
@@ -199,8 +211,8 @@ if __name__ == '__main__':
 
     main = Main()
 
-    # with open('Inputs/main.pkl', 'wb') as file:
-    #     pickle.dump(main, file)
+    with open('Inputs/main.pkl', 'wb') as file:
+        pickle.dump(main, file)
     
     # with open('Inputs/main.pkl', 'rb') as file:
     #     main = pickle.load(file)
@@ -209,26 +221,37 @@ if __name__ == '__main__':
     print('Final net worth: ',f'{np.sum(main.avgTotalSavings.iloc[-1,:]):,.0f}')#/main.avgInflation[-1]
 
     plt.figure()
-    n = len(main.avgTotalSavings.columns)
-    plt.plot(main.avgTotalSavings.iloc[:,-n:])    
-    plt.legend(main.avgTotalSavings.columns[-n:])
+    plt.plot(main.savings.median())
+    plt.legend(main.avgTotalSavings.columns)
     plt.plot(np.zeros((main.vars.base.years,1)),'--')
-    # plt.show()
+    plt.savefig('Outputs/Accounts')
 
     plt.figure()
+    plt.title('Net Worth')
     std = np.std(main.totalSavings)
     avg = np.mean(main.totalSavings)
     plt.hist(main.totalSavings,#/main.avgInflation[-1],
              bins=max(1,int(main.vars.base.loops/20)),
              rwidth=0.9,
              range=(avg-2*std,avg+3*std))#/main.avgInflation[-1])
+    plt.savefig('Outputs/NetWorth')
+    
+    accounts = main.vars.accounts
+    accountType = accounts.accountSummary.accountType
+    for accName,accType in accountType.items():
+        plt.figure()
+        plt.title(accName)
+        data = []
+        for savings in main.allSavings:
+            data.append(savings[accName].iloc[-1])
+
+        std = np.std(data)
+        avg = np.mean(data)
+
+        plt.hist(data,
+                 bins=max(1,int(main.vars.base.loops/20)),
+                 rwidth=0.9,
+                 range=(avg-2*std,avg+3*std))
+
     plt.show()
-
-    # plt.figure()
-    # accounts = main.vars.accounts
-    # accountType = accounts.accountSummary.accountType
-    # for acc,accType in accountType.items():
-    #     main.allSavings
-    #     plt.hist()
-
-    print('')
+    # print('')
