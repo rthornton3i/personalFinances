@@ -30,17 +30,17 @@ class Taxes:
         
         self.isKids = self.vars.children.isKids
         self.childBaseAges = self.vars.children.childBaseAges
+
+        self.sav = self.vars.savings
+        self.earn = self.sav.earnings
+        self.reports = self.vars.savings.reports
         
     def run(self):
-        savings = self.vars.savings
-
 #       Setup
         ##############################
         
-        # General
-        self.expenses = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
-        self.savings = pd.DataFrame(0,index=np.arange(self.years),columns=savings.earnings.columns)
-        self.earnings = self.vars.taxes.earnings
+        # General        
+        self.sav.savings = pd.DataFrame(0.,index=np.arange(self.years),columns=self.earn.columns)
 
         # Retirement
         self.perc401 = np.zeros((self.numInd,self.years))
@@ -122,8 +122,6 @@ class Taxes:
 #       Savings
         ##############################
         self.savingsCalc()
-        self.vars.taxes.savings = self.savings
-        self.vars.taxes.expenses = self.expenses
 
         self.earningsReport()
 
@@ -226,14 +224,14 @@ class Taxes:
 
     def retirementWithdrawalCalc(self):
         def getDistribution():
-            dist = np.sum(self.savings.loc[j,accName] / distributionYrs(self.ages[i,j])) / len(inds)
-            self.savings.loc[j,accName] -= dist
+            dist = np.sum(self.sav.savings.loc[j,accName] / distributionYrs(self.ages[i,j])) / len(inds)
+            self.sav.savings.loc[j,accName] -= dist
 
             return dist
         
         distributionYrs = lambda age : -0.00000684*age**4+0.00266293*age**3-0.37364604*age**2+21.78182*age-414.165
 
-        savings = self.vars.savings
+        self.earn = self.sav.earnings
         accountSummary = self.vars.accounts.accountSummary
         ret = self.vars.benefits.retirement
 
@@ -244,7 +242,7 @@ class Taxes:
         self.rothWithdrawal = np.zeros((self.numInd,self.years))
 
         for j in range(self.years):
-            for accName,_ in savings.earnings.items():
+            for accName,_ in self.earn.items():
                 ##PREVIOUS YEARS BALANCE
                 match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD':
@@ -253,20 +251,20 @@ class Taxes:
                             self.netRothCont[j] += self.rothCont[i,j]
                             
                         if j == 0:
-                            self.savings.loc[0,accName] += accountSummary.baseSavings.loc[accName]
+                            self.sav.savings.loc[0,accName] += accountSummary.baseSavings.loc[accName]
                         else:
-                            self.savings.loc[j,accName] += self.savings.loc[j-1,accName]
+                            self.sav.savings.loc[j,accName] += self.sav.savings.loc[j-1,accName]
 
                 ##ADD CONTRIBUTIONS
                 match str(accountSummary.accountType.loc[accName]).upper():
-                    case 'ROTH': self.savings.loc[j,accName] += self.netRothCont[j]
-                    case 'TRAD': self.savings.loc[j,accName] += self.netTradCont[j]
+                    case 'ROTH': self.sav.savings.loc[j,accName] += self.netRothCont[j]
+                    case 'TRAD': self.sav.savings.loc[j,accName] += self.netTradCont[j]
 
                 ##ADD EARNINGS
                 match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD':
                         if j > 0:
-                            self.savings.loc[j,accName] += savings.earnings.loc[j,accName] * self.savings.loc[j-1,accName]
+                            self.sav.savings.loc[j,accName] += self.earn.loc[j,accName] * self.sav.savings.loc[j-1,accName]
 
                 ##SUBTRACT DISTRIBTUIONS
                 match accountSummary.accOwner.loc[accName].upper():
@@ -612,9 +610,9 @@ class Taxes:
         def getWithdrawal(reqWithdrawal):
             capGains = accountSummary.capGainsType.loc[accFrom].upper()
 
-            withdrawal = min(reqWithdrawal,max(0,self.savings.loc[j,accFrom]))
+            withdrawal = min(reqWithdrawal,max(0,self.sav.savings.loc[j,accFrom]))
             reqWithdrawal -= withdrawal
-            self.savings.loc[j,accFrom] -= withdrawal
+            self.sav.savings.loc[j,accFrom] -= withdrawal
             self.netCash[j] += withdrawal
             
             match capGains:
@@ -627,7 +625,7 @@ class Taxes:
         def underFlowOrder():
             accsTo = []
             accsFrom = []
-            for accName,_ in savings.earnings.items():
+            for accName,_ in self.earn.items():
                 if not pd.isna(accountSummary.underflow.loc[accName]):
                     accsFrom.append(accountSummary.underflow.loc[accName])
                     accsTo.append(accName)
@@ -650,10 +648,10 @@ class Taxes:
         def overFlow(accountTo, capGainsType, maxBal=1e9):
             capGainsType = self.vars.accounts.accountSummary.capGainsType
 
-            if self.savings.loc[j,accName] > maxBal:
-                diff = self.savings.loc[j,accName] - maxBal
-                self.savings.loc[j,accName] = maxBal
-                self.savings.loc[j,accountTo] += diff
+            if self.sav.savings.loc[j,accName] > maxBal:
+                diff = self.sav.savings.loc[j,accName] - maxBal
+                self.sav.savings.loc[j,accName] = maxBal
+                self.sav.savings.loc[j,accountTo] += diff
 
                 capGains = capGainsType.loc[accName].upper()
 
@@ -677,42 +675,43 @@ class Taxes:
 
             self.netIncCalc()
 
-        savings = self.vars.savings
-        expenses = self.vars.expenses
+        self.earn = self.sav.earnings
+        alloc = self.sav.allocations
+        exps = self.vars.expenses
         accountSummary = self.vars.accounts.accountSummary
         
-        # EXPENSES
-        for exp,val in expenses.totalExpenses.items():
-            self.expenses.loc[:,getattr(getattr(expenses,exp),'allocation')] += val
+        expenses = pd.DataFrame(0.,index=np.arange(self.years),columns=self.earn.columns)
         
-        # self.expenses.to_csv('Expenses.csv')
+        # EXPENSES
+        for exp,val in exps.totalExpenses.items():
+            expenses.loc[:,getattr(getattr(exps,exp),'allocation')] += val
 
         # SAVINGS
         for j in range(self.years):
             ######################################################################################
             ##EXPENSES
-            for accName,_ in savings.earnings.items():
+            for accName,_ in self.earn.items():
                 match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD': pass
                     case _:
                         #PREVIOUS YEARS BALANCE
                         if j == 0:
-                            self.savings.loc[0,accName] += accountSummary.baseSavings.loc[accName]
+                            self.sav.savings.loc[0,accName] += accountSummary.baseSavings.loc[accName]
                         else:
-                            self.savings.loc[j,accName] += self.savings.loc[j-1,accName]
+                            self.sav.savings.loc[j,accName] += self.sav.savings.loc[j-1,accName]
 
                         #SUBTRACT EXPENSES
-                        self.savings.loc[j,accName] -= self.expenses.loc[j,accName]
+                        self.sav.savings.loc[j,accName] -= expenses.loc[j,accName]
 
             ######################################################################################
             ##WITHDRAWALS
             withdrawalOrder = underFlowOrder()
 
             rebalance = 0
-            for accName,_ in savings.earnings.items():
+            for accName,_ in self.earn.items():
                 match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD': pass
-                    case _: rebalance += abs(self.savings.loc[j,accName]) if self.savings.loc[j,accName] < 0 else 0
+                    case _: rebalance += abs(self.sav.savings.loc[j,accName]) if self.sav.savings.loc[j,accName] < 0 else 0
 
             ##WITHDRAWAL AND TAX
             if rebalance > self.netCash[j]:
@@ -734,32 +733,32 @@ class Taxes:
                 calculateTaxes()
 
             ##REFILL NEGATIVE ACCOUNTS            
-            for accName,_ in savings.earnings.items():
+            for accName,_ in self.earn.items():
                 match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD': pass
                     case _:
-                        if self.savings.loc[j,accName] < 0 and self.netCash[j] > 0:
-                            deposit = min(abs(self.savings.loc[j,accName]),self.netCash[j])
+                        if self.sav.savings.loc[j,accName] < 0 and self.netCash[j] > 0:
+                            deposit = min(abs(self.sav.savings.loc[j,accName]),self.netCash[j])
                             self.netCash[j] -= deposit
-                            self.savings.loc[j,accName] += deposit
+                            self.sav.savings.loc[j,accName] += deposit
 
             ######################################################################################
             ##ALLOCATIONS & EARNINGS
             earnings = {}
-            for accName,_ in savings.earnings.items():
+            for accName,_ in self.earn.items():
                 earnings[accName] = 0
 
                 match str(accountSummary.accountType.loc[accName]).upper():
                     case 'ROTH'|'TRAD': pass
                     case _:
                         #ADD ALLOCATIONS
-                        self.savings.loc[j,accName] += savings.allocations.loc[j,accName] * self.netCash[j]
+                        self.sav.savings.loc[j,accName] += alloc.loc[j,accName] * self.netCash[j]
 
                         #ADD EARNINGS
                         if j > 0:
-                            if self.savings.loc[j-1,accName] > 0:
-                                earnings[accName] = savings.earnings.loc[j,accName] * self.savings.loc[j-1,accName]
-                                self.savings.loc[j,accName] += earnings[accName]
+                            if self.sav.savings.loc[j-1,accName] > 0:
+                                earnings[accName] = self.earn.loc[j,accName] * self.sav.savings.loc[j-1,accName]
+                                self.sav.savings.loc[j,accName] += earnings[accName]
 
                 #ACCOUNT SPECIFIC ACTIONS
                 match str(accountSummary.accountType.loc[accName]).upper():
@@ -768,9 +767,9 @@ class Taxes:
                     case '529':
                         if any(self.isKids):
                             if j > -max(self.childBaseAges) and self.isKids[j] == 0:
-                                remainVal = self.savings.loc[j,accName]
-                                self.savings.loc[j,accName] = 0
-                                self.savings.loc[j,accountSummary.overflow.loc[accName]] += remainVal
+                                remainVal = self.sav.savings.loc[j,accName]
+                                self.sav.savings.loc[j,accName] = 0
+                                self.sav.savings.loc[j,accountSummary.overflow.loc[accName]] += remainVal
                     
                 #ADJUST UNDERFLOW/OVERFLOW
                 if not pd.isna(accountSummary.overflow.loc[accName]):
@@ -782,7 +781,7 @@ class Taxes:
                 calculateTaxes()
     
     def earningsReport(self):
-        self.earnings.totalTaxes    = pd.DataFrame(np.stack([np.sum(self.fedTax,axis=0), 
+        self.reports.totalTaxes    = pd.DataFrame(np.stack([np.sum(self.fedTax,axis=0), 
                                                              np.sum(self.ficaTax,axis=0),
                                                              np.sum(self.stateTax+self.localTax,axis=0),
                                                              np.sum(self.propTax,axis=0),
@@ -791,24 +790,24 @@ class Taxes:
                                                     index=np.arange(self.years),
                                                     columns=['Federal','FICA','State','Property','CapGains'])
         
-        self.earnings.totalDeducted = pd.DataFrame(np.stack([np.sum(self.tradCont,axis=0), 
+        self.reports.totalDeducted = pd.DataFrame(np.stack([np.sum(self.tradCont,axis=0), 
                                                              np.sum(self.healthDed,axis=0)],
                                                              axis=1),
                                                     index=np.arange(self.years),
                                                     columns=['Trad401k','HSA'])
         
-        self.earnings.totalWithheld = pd.DataFrame(np.stack([np.sum(self.rothCont,axis=0),
+        self.reports.totalWithheld = pd.DataFrame(np.stack([np.sum(self.rothCont,axis=0),
                                                              np.sum(self.healthBen,axis=0)],
                                                              axis=1),
                                                     index=np.arange(self.years),
                                                     columns=['Roth401k','MedicalPremium'])
         
-        self.earnings.retireIncome  = pd.DataFrame(np.stack([np.sum(self.tradWithdrawal,axis=0),
+        self.reports.retireIncome  = pd.DataFrame(np.stack([np.sum(self.tradWithdrawal,axis=0),
                                                              np.sum(self.rothWithdrawal,axis=0)],
                                                              axis=1),
                                                     index=np.arange(self.years),
                                                     columns=['TradWithdrawal','RothWithdrawal'])
-        self.earnings.capitalGains  = pd.DataFrame(np.stack([self.noCapGains,
+        self.reports.capitalGains  = pd.DataFrame(np.stack([self.noCapGains,
                                                              self.stCapGains,
                                                              self.ltCapGains],
                                                              axis=1),
