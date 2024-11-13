@@ -35,18 +35,21 @@ class Main:
 
         self.toc = time()
         print('Initial setup done: ',str(self.toc-self.tic))
+        
+        # self.executeSingle()
+        self.executeMulti()
 
-        with open("Outputs/NetWorth.csv",'w') as f:
-            for age in range(62,71):
-                self.vars.benefits.socialSecurity.collectionAge = [age,age]
+        # with open("Outputs/NetWorth1.csv",'w') as f:
+        #     for age in range(62,71):
+        #         self.vars.benefits.socialSecurity.collectionAge = [age,age]
 
-                # self.executeSingle()
-                self.executeMulti()
+        #         # self.executeSingle()
+        #         self.executeMulti()
 
-                print(age)
-                val = np.sum(self.avgTotalSavings.iloc[-1,:])
-                print('Final net worth: ',f'{val:,.0f}')
-                f.write(str(age) + ',' + str(val) + str(np.percentile(self.totalSavings,25)) + str(np.percentile(self.totalSavings,75)) + '\n')
+        #         print(age)
+        #         val = np.sum(self.avgTotalSavings.iloc[-1,:])
+        #         print('Final net worth: ',f'{val:,.0f}')
+        #         f.write(str(age) + ',' + str(val) + ',' + str(np.percentile(self.totalSavings,25)) + ',' + str(np.percentile(self.totalSavings,75)) + '\n')
 
         self.toc = time()
         print('Done: ',str(self.toc-self.tic))
@@ -67,7 +70,7 @@ class Main:
     
     def getField(self,fields:list[str],filename:str=None,inflation:NDArray=None):
         vals = []
-        avgVal:NDArray = []
+        avgVal = []
 
         # Get Data
         for i,vars in enumerate(self.allVars):
@@ -121,8 +124,8 @@ class Main:
         self.avgTotalExpenses,_ = self.getTotal(outputs['totalExpenses'])
         self.avgTotalExpenses *= mp.cpu_count()
 
-        self.avgTotalExpenses.to_csv('Outputs/Expenses.csv') 
-        self.avgTotalSavings.to_csv('Outputs/Savings.csv')    
+        # self.avgTotalExpenses.to_csv('Outputs/Expenses.csv') 
+        # self.avgTotalSavings.to_csv('Outputs/Savings.csv')    
 
     def executeMulti(self):  
         self.allVars = []      
@@ -152,6 +155,10 @@ class Main:
         self.avgTaxes,_ = self.getField(['savings','reports','totalTaxes'],'Expense/Taxes.csv')
         self.avgDeductions,_ = self.getField(['savings','reports','totalDeducted'],'Expense/Deductions.csv')
         self.avgWithholdings,_ = self.getField(['savings','reports','totalWithheld'],'Expense/Withholdings.csv')
+
+        self.avgWithdrawals,_ = self.getField(['savings','withdrawals'],'Accounts/Withdrawals.csv')
+        self.avgContributions,_ = self.getField(['savings','contributions'],'Accounts/Contributions.csv')
+        self.avgEarnings,_ = self.getField(['savings','earnings'],'Accounts/Earnings.csv')
 
         # Get Summary
         self.savings = pd.concat(self.allSavings)
@@ -231,27 +238,27 @@ if __name__ == '__main__':
     std = np.std(main.totalSavings)
     avg = np.mean(main.totalSavings)
     plt.hist(main.totalSavings,#/main.avgInflation[-1],
-             bins=max(1,int(main.vars.base.loops/20)),
+             bins=max(1,int(main.vars.base.loops/5)),
              rwidth=0.9,
              range=(avg-2*std,avg+3*std))#/main.avgInflation[-1])
     plt.savefig('Outputs/NetWorth')
     
-    accounts = main.vars.accounts
-    accountType = accounts.accountSummary.accountType
-    for accName,accType in accountType.items():
-        plt.figure()
-        plt.title(accName)
-        data = []
-        for savings in main.allSavings:
-            data.append(savings[accName].iloc[-1])
+    # accounts = main.vars.accounts
+    # accountType = accounts.accountSummary.accountType
+    # for accName,accType in accountType.items():
+    #     plt.figure()
+    #     plt.title(accName)
+    #     data = []
+    #     for savings in main.allSavings:
+    #         data.append(savings[accName].iloc[-1])
 
-        std = np.std(data)
-        avg = np.mean(data)
+    #     std = np.std(data)
+    #     avg = np.mean(data)
 
-        plt.hist(data,
-                 bins=max(1,int(main.vars.base.loops/20)),
-                 rwidth=0.9,
-                 range=(avg-2*std,avg+3*std))
+    #     plt.hist(data,
+    #              bins=max(1,int(main.vars.base.loops/20)),
+    #              rwidth=0.9,
+    #              range=(avg-2*std,avg+3*std))
 
     plt.show()
     # print('')

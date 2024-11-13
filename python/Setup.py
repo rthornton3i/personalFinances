@@ -111,8 +111,7 @@ class Setup:
                 self.ages[j,i] = base.baseAges[j] + i
             
             for j,ch in enumerate(child.childBaseAges):
-                if ch >= 0 and i < child.maxChildYr-ch:
-                    self.childAges[j,i] = i + ch
+                self.childAges[j,i] = i + ch
         
         for ch in child.childBaseAges:
             self.isKids[max(0,-ch):max(0,-ch)+child.maxChildYr-ch] += 1

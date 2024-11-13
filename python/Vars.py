@@ -5,7 +5,7 @@ from numpy.typing import NDArray
 from pandas import DataFrame
 
 class Inputs():
-    file = 'Inputs/Inputs_ThorntonParents.xlsx'
+    file = 'Inputs/Inputs.xlsx'#_ThorntonParents.xlsx'
 
     """BASE"""
     inputSheet = 'Inputs'
@@ -74,8 +74,8 @@ class Vars():
             
             self.numInd = len(self.baseAges)
 
-            self.ages:list[int]
-            self.isRetire:list[bool]
+            self.ages:list[int] = []
+            self.isRetire:list[bool] = []
     
     class Filing(Inputs):
         def __init__(self):
@@ -86,7 +86,7 @@ class Vars():
             self.filingType:str  = inputFields.loc['Filing'].values[0]
             self.filingState:str = inputFields.loc['Filing State'].values[0]
 
-            self.iters:int
+            self.iters:int = []
     
     class Salary(Inputs):
         def __init__(self):
@@ -110,10 +110,10 @@ class Vars():
             self.salCustom = pd.read_excel(self.file,self.salarySheet,header=None,skiprows=1,index_col=0,names=None) if any([opt.upper() == 'CUSTOM' for opt in self.salOpt]) else None
             self.prevSal = pd.read_excel(self.file,self.socialSecuritySheet,header=None,skiprows=1,index_col=0,names=None).sort_index()
 
-            self.salary:list[float]
-            self.income:list[float]
-            self.inflation:list[float]
-            self.summedInflation:list[float]
+            self.salary:list[float] = []
+            self.income:list[float] = []
+            self.inflation:list[float] = []
+            self.summedInflation:list[float] = []
     
     class Children(Inputs):
         def __init__(self):
@@ -125,9 +125,9 @@ class Vars():
             self.maxChildYr        = inputFields.loc['Max Age of Childcare'].values[0]
             self.childInflationVal = inputFields.loc['Child Inflation'].values[0]
 
-            self.childAges:list[int]
-            self.isKids:list[int]
-            self.childInflation:list[float]
+            self.childAges:list[int] = []
+            self.isKids:list[int] = []
+            self.childInflation:list[float] = []
 
     class Expenses:
         def __init__(self):
@@ -156,7 +156,7 @@ class Vars():
                                                  not callable(getattr(self, e)) and 
                                                  hasattr(getattr(self,e),'allocation')]
 
-            self.totalExpenses:DataFrame
+            self.totalExpenses:DataFrame = pd.DataFrame()
         
         class Loans(Inputs):
             def __init__(self):
@@ -169,10 +169,10 @@ class Vars():
             
                 self.numLoans = self.loanSummary.shape[0]
 
-                self.loanBal:list[float]
-                self.loanPay:list[float]
-                self.loanPrn:list[float]
-                self.loanInt:list[float]
+                self.loanBal:list[float] = []
+                self.loanPay:list[float] = []
+                self.loanPrn:list[float] = []
+                self.loanInt:list[float] = []
 
         class Cars(Inputs):
             def __init__(self):
@@ -191,12 +191,12 @@ class Vars():
             
                 self.numCars = self.carSummary.shape[0]
 
-                self.carBal:list[float]
-                self.carPay:list[float]
-                self.carPrn:list[float]
-                self.carInt:list[float]
-                self.carWth:list[float]
-                self.carDwn:list[float]
+                self.carBal:list[float] = []
+                self.carPay:list[float] = []
+                self.carPrn:list[float] = []
+                self.carInt:list[float] = []
+                self.carWth:list[float] = []
+                self.carDwn:list[float] = []
 
         class Rent(Inputs):
             def __init__(self):
@@ -237,12 +237,12 @@ class Vars():
                         
                 self.numHouses = self.houseSummary.shape[0]
 
-                self.houseBal:list[float]
-                self.housePay:list[float]
-                self.housePrn:list[float]
-                self.houseInt:list[float]
-                self.houseWth:list[float]
-                self.houseDwn:list[float]
+                self.houseBal:list[float] = []
+                self.housePay:list[float] = []
+                self.housePrn:list[float] = []
+                self.houseInt:list[float] = []
+                self.houseWth:list[float] = []
+                self.houseDwn:list[float] = []
             
         class Food(Inputs):
             def __init__(self):
@@ -409,13 +409,13 @@ class Vars():
                 self.hsaLimit.joint = 8300
                 self.hsaLimit.catchUp = 1000
                 
-                self.hsaDeposit:list[float]
+                self.hsaDeposit:list[float] = []
 
             class Args:
                 def __init__(self):
-                    self.joint:list[float]
-                    self.single:list[float]
-                    self.catchUp:list[float]
+                    self.joint:list[float] = []
+                    self.single:list[float] = []
+                    self.catchUp:list[float] = []
         
         class Retirement:
             def __init__(self):
@@ -439,8 +439,8 @@ class Vars():
  
             class Args:
                 def __init__(self):
-                    self.basePerc:list[float]
-                    self.maxPerc:list[float]
+                    self.basePerc:list[float] = []
+                    self.maxPerc:list[float] = []
             
         class SocialSecurity(Inputs):
             def __init__(self):
@@ -461,7 +461,7 @@ class Vars():
                 self.bendPts = [1115,6721,1e9]
                 self.bendSlope = [[0.33,25],[1.99,155]]
 
-                self.ssIns:list[float]
+                self.ssIns:list[float] = []
         
     class Taxes:
         def __init__(self):
@@ -543,17 +543,19 @@ class Vars():
 
     class Savings():
         def __init__(self):
-            self.allocations:list[float]
-            self.earnings:list[float]
-            self.savings:DataFrame
+            self.allocations:DataFrame = pd.DataFrame()
+            self.earnings:DataFrame = pd.DataFrame()
+            self.withdrawals:DataFrame = pd.DataFrame()
+            self.contributions:DataFrame = pd.DataFrame()
+            self.savings:DataFrame = pd.DataFrame()
             self.reports = self.Reports()
 
         class Reports:
-            totalTaxes:DataFrame
-            totalDeducted:DataFrame
-            totalWithheld:DataFrame
-            retireIncome:DataFrame
-            capitalGains:DataFrame
+            totalTaxes:DataFrame = pd.DataFrame()
+            totalDeducted:DataFrame = pd.DataFrame()
+            totalWithheld:DataFrame = pd.DataFrame()
+            retireIncome:DataFrame = pd.DataFrame()
+            capitalGains:DataFrame = pd.DataFrame()
     
     class Accounts(Inputs):
         def __init__(self):
