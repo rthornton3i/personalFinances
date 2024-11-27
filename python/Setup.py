@@ -141,9 +141,9 @@ class Setup:
 
             ## GET INDEX OF COLLECTION YEAR AND AT 60
             prevYrs = len(prevSal)
-            colYrs = (ss.collectionAge[i] - base.baseAges[i]).astype(int)
-            yrAt60 = (60 - base.baseAges[i] + prevYrs).astype(int)
-            yrAt62 = (62 - base.baseAges[i] + prevYrs).astype(int)
+            colYrs = ss.collectionAge[i] - base.baseAges[i]
+            yrAt60 = 60 - base.baseAges[i] + prevYrs
+            yrAt62 = 62 - base.baseAges[i] + prevYrs
             
             # If not turning 60
             if yrAt60 > self.years + prevYrs:
