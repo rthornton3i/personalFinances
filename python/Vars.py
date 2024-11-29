@@ -19,6 +19,7 @@ class Inputs():
     allocationsSheet = 'Allocations'
     earningsSheet = 'Earnings'
     accountsSheet = 'Accounts'
+    benefitsSheet = 'Benefits'
 
     """EXPENSES"""
     carSheet = 'Car'
@@ -64,13 +65,13 @@ class Vars():
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C:D',nrows=26,names=None)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=29,names=None).drop(columns=1)
             
             self.loops:int = inputFields.loc['Iterations'].values[0]
             self.years:int = inputFields.loc['Years'].values[0]
 
-            self.baseAges:list[int] = inputFields.loc['Ages'].values[0:].astype(int)
-            self.retAges:list[int]  = inputFields.loc['Retirement Age'].values[0:].astype(int)
+            self.baseAges:list[int] = dropnan(inputFields.loc['Ages'].values[0:])
+            self.retAges:list[int]  = dropnan(inputFields.loc['Retirement Age'].values[0:])
             
             self.numInd = len(self.baseAges)
 
@@ -81,7 +82,7 @@ class Vars():
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C',nrows=26,names=None)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=29,names=None).drop(columns=1)
             
             self.filingType:str  = inputFields.loc['Filing'].values[0]
             self.filingState:str = inputFields.loc['Filing State'].values[0]
@@ -92,7 +93,7 @@ class Vars():
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=24,names=None).drop(columns=1)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=29,names=None).drop(columns=1)
 
             self.salOpt:list[str]    = dropnan(inputFields.loc['Salary Option'].values[0:])
             self.salBase:list[float] = dropnan(inputFields.loc['Salary'].values[0:])
@@ -119,9 +120,9 @@ class Vars():
         def __init__(self):
             super().__init__()
 
-            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=26,names=None).drop(columns=1)
+            inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=29,names=None).drop(columns=1)
 
-            self.childBaseAges     = dropnan(inputFields.loc['Child Ages'].values[0:]).astype(int)
+            self.childBaseAges     = dropnan(inputFields.loc['Child Ages'].values[0:])
             self.maxChildYr        = inputFields.loc['Max Age of Childcare'].values[0]
             self.childInflationVal = inputFields.loc['Child Inflation'].values[0]
 
@@ -307,7 +308,7 @@ class Vars():
             def __init__(self):
                 super().__init__()
                 
-                self.allocation:str = getValue(self.file,self.healthCareSheet,row=14,col='B')
+                self.allocation:str = getValue(self.file,self.healthCareSheet,row=13,col='B')
 
                 insuranceFields = pd.read_excel(self.file,self.healthCareSheet,header=None,index_col=0,skiprows=1,nrows=11,names=None).drop(columns=1)
                 self.premium:list[float]     = dropnan(insuranceFields.loc['Premium'].values[0:])
@@ -319,8 +320,7 @@ class Vars():
                 self.costs:list[float] = insuranceFields.loc['Cost per Visit'].values[0:3]
                 self.drugs:float       = insuranceFields.loc['Pharmacy'].values[0]
 
-                self.hsaOpt:bool      = insuranceFields.loc['HSA'].values[0]
-                self.hsaDeposit:float = insuranceFields.loc['HSA Deposit'].values[0]
+                self.hsaOpt:bool      = dropnan(insuranceFields.loc['HSA'].values[0:])
             
         class Pet(Inputs):
             def __init__(self):
@@ -408,8 +408,6 @@ class Vars():
                 self.hsaLimit.single = 4150
                 self.hsaLimit.joint = 8300
                 self.hsaLimit.catchUp = 1000
-                
-                self.hsaDeposit:list[float] = []
 
             class Args:
                 def __init__(self):
@@ -417,12 +415,8 @@ class Vars():
                     self.single:list[float] = []
                     self.catchUp:list[float] = []
         
-        class Retirement:
-            def __init__(self):
-                self.traditional = self.Args()
-                self.roth = self.Args()
-                self.match = self.Args()
-                
+        class Retirement(Inputs):
+            def __init__(self):                
                 self.rmdAge = 72
                 self.rmdFactor = [0.00962,2.345,144.617]
             
@@ -431,22 +425,18 @@ class Vars():
                 self.maxCatchUpCont = 7500
                 self.catchUpAge = 50
 
-                self.traditional.basePerc = 0                
-                self.roth.basePerc = 0.1
-                
-                self.match.maxPerc = 0.06
-                self.match.basePerc = 0.04
- 
-            class Args:
-                def __init__(self):
-                    self.basePerc:list[float] = []
-                    self.maxPerc:list[float] = []
+                super().__init__()
+                inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=29,names=None).drop(columns=1)
+
+                self.traditional = dropnan(inputFields.loc['Traditional 401k'].values[0:])               
+                self.roth =        dropnan(inputFields.loc['Roth 401k'].values[0:])
+                self.match =       dropnan(inputFields.loc['Match 401k'].values[0:])
             
         class SocialSecurity(Inputs):
             def __init__(self):
                 super().__init__()
 
-                inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,usecols='A,C:D',nrows=26,names=None)
+                inputFields = pd.read_excel(self.file,self.inputSheet,header=None,index_col=0,skiprows=1,nrows=29,names=None).drop(columns=1)
 
                 self.collectionAge = dropnan(inputFields.loc['SS Collection Age'].values[0:])
                 

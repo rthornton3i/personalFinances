@@ -150,11 +150,11 @@ class Taxes:
         
         for i in range(self.iters):
             retire = min(self.retAges[i] - self.baseAges[i],self.years)
-            for j in range(retire):
-                if self.ages[i,j] >= 55:
-                    hsaLimit += healthBen.hsaLimit.catchUp
+            # for j in range(retire):
+            #     if self.ages[i,j] >= 55:
+            #         hsaLimit += healthBen.hsaLimit.catchUp
 
-                hsa[i,j] = min(((healthExp.hsaDeposit * self.summedInflation[j]) * (1 + self.childInflation[j])) + healthBen.hsaDeposit[i,j],hsaLimit)
+            #     hsa[i,j] = min(((healthExp.hsaDeposit * self.summedInflation[j]) * (1 + self.childInflation[j])) + healthBen.hsaDeposit[i,j],hsaLimit)
                 # fsa[i,j] = (healthBen.fsa * self.summedInflation[j]) * (1 + self.childInflation[j])
                 # hra[i,j] = (healthBen.hra * self.summedInflation[j]) * (1 + self.childInflation[j])
             
@@ -166,14 +166,14 @@ class Taxes:
         self.healthDed  = hsa
         self.healthBen  = medicalPrem
     
-    def retContCalc(self,retirement):        
+    def retContCalc(self,retireCont):        
         retire = self.vars.benefits.retirement
 
         ret401Perc = np.zeros((self.numInd,self.years))
         
         for i in range(self.numInd):
             for j in range(self.years):
-                ret401Perc[i,j] = retirement.basePerc
+                ret401Perc[i,j] = retireCont[i]
         
         contribution = np.multiply(ret401Perc,self.salary)
         self.perc401 = np.sum((self.perc401,ret401Perc),0)
@@ -188,15 +188,14 @@ class Taxes:
         
         return contribution
     
-    def matchContCalc(self, retirement):  
+    def matchContCalc(self, retireCont):  
         retire = self.vars.benefits.retirement
 
         match401Perc = np.zeros((self.numInd,self.years))
         
         for i in range(self.numInd):
             for j in range(self.years):
-                match401Perc[i,j] = self.perc401[i,j] / 2 if self.perc401[i,j] <= retirement.maxPerc else retirement.maxPerc
-                match401Perc[i,j] += retirement.basePerc if i == 1 else 0 # ONLY INDIVIDUAL 1
+                match401Perc[i,j] = retireCont[i]
         
         contribution =  np.multiply(match401Perc,self.salary)
         self.cont401 = np.sum((self.cont401,contribution),0)
@@ -621,9 +620,6 @@ class Taxes:
             sav.loc[j,accFrom] -= withdrawal
             wthdr.loc[j,accFrom] += withdrawal
 
-            if accFrom == 'college529':
-                print('')
-
             self.netCash[j] += withdrawal
             
             match capGains:
@@ -757,6 +753,7 @@ class Taxes:
                         if sav.loc[j,accName] < 0 and self.netCash[j] > 0:
                             deposit = min(abs(sav.loc[j,accName]),self.netCash[j])
                             self.netCash[j] -= deposit
+
                             sav.loc[j,accName] += deposit
                             contr.loc[j,accName] += deposit
 
@@ -795,6 +792,9 @@ class Taxes:
                     
                 #ADJUST UNDERFLOW/OVERFLOW
                 if not pd.isna(accountSummary.overflow.loc[accName]):
+                    """
+                    update overflow order like underflow so it goes min to max
+                    """
                     overFlow(accountSummary.overflow.loc[accName],
                              accountSummary.capGainsType.loc[accountSummary.overflow.loc[accName]],
                              maxBal=accountSummary.overAmt.loc[accName] if not pd.isna(accountSummary.overAmt.loc[accName]) else 1e9)

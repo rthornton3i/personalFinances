@@ -193,18 +193,25 @@ class Expenses:
         return total
     
     def healthExp(self):
+        def addDim(val):
+            return val if len(val) == self.numInd else np.repeat(val,2)
+        
         health = self.vars.expenses.healthcare
-        healthBen = self.vars.benefits.health
+        healthBen = self.vars.benefits.health            
 
-        total = np.zeros((self.iters,self.years))
-        self.hsaDeposit = np.zeros((self.iters,self.years))
+        total = np.zeros((self.numInd,self.years))
+        self.hsaDeposit = np.zeros((self.numInd,self.years))
+
+        health.deductible = addDim(health.deductible)
+        health.maxOOP = addDim(health.maxOOP)
+        health.coinsurance = addDim(health.coinsurance)
 
         match self.filingType:
             case "JOINT": hsaLimit = healthBen.hsaLimit.joint
             case "SEPARATE", "SINGLE": hsaLimit = healthBen.hsaLimit.single        
 
         for j in range(self.years):
-            for i in range(self.iters):
+            for i in range(self.numInd):
                 if self.ages[i,j] >= 55:
                     hsaLimit += healthBen.hsaLimit.catchUp
 
@@ -244,9 +251,10 @@ class Expenses:
                             cost = 0
                 
                 total[i,j] += (health.drugs * 12) * self.summedInflation[j]
-                total[i,j] *= (1 + self.childInflation[i]) / self.iters
+                total[i,j] *= (1 + self.childInflation[j]) / self.iters
 
-                self.hsaDeposit[i,j] = min(total[i,j],hsaLimit)
+                if health.hsaOpt:
+                    self.hsaDeposit[i,j] = min(total[i,j],hsaLimit)
         
         return np.sum(total, 0)
     
