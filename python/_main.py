@@ -37,8 +37,8 @@ class Main:
         self.toc = time()
         print('Initial setup done: ',str(self.toc-self.tic))
         
-        # self.executeSingle()
-        self.executeMulti()
+        self.executeSingle()
+        # self.executeMulti()
 
         # with open("Outputs/NetWorth1.csv",'w') as f:
         #     for age in range(62,71):
@@ -208,7 +208,7 @@ if __name__ == '__main__':
     plt.plot(main.savings)
     plt.legend(main.avgTotalSavings.columns)
     plt.plot(np.zeros((main.vars.base.years,1)),'--')
-    plt.yscale('log')
+    # plt.yscale('log')
     plt.savefig('Outputs/Accounts')
 
     # plt.figure()

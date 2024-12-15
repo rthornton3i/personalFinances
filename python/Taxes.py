@@ -629,41 +629,20 @@ class Taxes:
             
             return reqWithdrawal
 
-        def underFlowOrder():
-            accsTo = []
-            accsFrom = []
-            for accName,_ in self.earnings.items():
-                if not pd.isna(accountSummary.underflow.loc[accName]):
-                    accsFrom.append(accountSummary.underflow.loc[accName])
-                    accsTo.append(accName)
-
-            for accTo in accsTo:
-                if accTo not in accsFrom:
-                    acc = accsFrom[accsTo.index(accTo)]
-                    break
-
-            order = []
-            while True:
-                order.append(acc)
-                acc = accountSummary.underflow.loc[acc]
-
-                if pd.isna(acc):
-                    break
-
-            return order
-
-        def overFlow(accountTo, capGainsType, maxBal=1e9):
+        def overFlow(accountFrom, accountTo, maxBal=1e9):
             capGainsType = self.vars.accounts.accountSummary.capGainsType
 
-            if sav.loc[j,accName] > maxBal:
-                diff = sav.loc[j,accName] - maxBal
-                sav.loc[j,accName] = maxBal
+            if sav.loc[j,accountFrom] > maxBal:
+                diff = sav.loc[j,accountFrom] - maxBal
+                # diff += diff * (1 + self.taxRate[j] + 0.05)
+
+                sav.loc[j,accountFrom] -= diff
                 sav.loc[j,accountTo] += diff
 
-                wthdr.loc[j,accName] += diff
+                wthdr.loc[j,accountFrom] += diff
                 contr.loc[j,accountTo] += diff
 
-                capGains = capGainsType.loc[accName].upper()
+                capGains = capGainsType.loc[accountFrom].upper()
 
                 match capGains:
                     case 'SHORT':
@@ -698,6 +677,9 @@ class Taxes:
         for exp,val in exps.totalExpenses.items():
             expenses.loc[:,getattr(getattr(exps,exp),'allocation')] += val
 
+        withdrawalOrder = accountSummary.underflow.dropna().sort_values().index.values
+        overflowOrder = accountSummary.overflow.dropna().sort_values().index.values
+            
         # SAVINGS
         for j in range(self.years):
             ######################################################################################
@@ -718,8 +700,6 @@ class Taxes:
 
             ######################################################################################
             ##WITHDRAWALS
-            withdrawalOrder = underFlowOrder()
-
             rebalance = 0
             for accName,_ in self.earnings.items():
                 match str(accountSummary.accountType.loc[accName]).upper():
@@ -731,19 +711,14 @@ class Taxes:
                 #GET WITHDRAWALS
                 reqWithdrawal = (rebalance - self.netCash[j]) * (1 + self.taxRate[j] + 0.05) # Including 5% margin for additional taxes
 
-                accFrom = withdrawalOrder[0]
-                reqWithdrawal = getWithdrawal(reqWithdrawal)
+                for accFrom in withdrawalOrder:
+                    reqWithdrawal = getWithdrawal(reqWithdrawal)
+                
+                    if reqWithdrawal <= 0:
+                        break
 
-                for accName in withdrawalOrder:
-                    accFrom = accountSummary.underflow.loc[accName]
-                    if not pd.isna(accFrom):
-                        reqWithdrawal = getWithdrawal(reqWithdrawal)
-                    
-                        if reqWithdrawal <= 0:
-                            break
-
-                #TAX WITHDRAWALS
-                calculateTaxes()
+            #TAX WITHDRAWALS
+            calculateTaxes()
 
             ##REFILL NEGATIVE ACCOUNTS            
             for accName,_ in self.earnings.items():
@@ -787,20 +762,20 @@ class Taxes:
                             sav.loc[j,accName] = 0
                             wthdr.loc[j,accName] += remainVal
 
-                            sav.loc[j,accountSummary.overflow.loc[accName]] += remainVal
-                            contr.loc[j,accountSummary.overflow.loc[accName]] += remainVal                                
+                            sav.loc[j,overflowOrder[0]] += remainVal
+                            contr.loc[j,overflowOrder[0]] += remainVal                                
                     
-                #ADJUST UNDERFLOW/OVERFLOW
-                if not pd.isna(accountSummary.overflow.loc[accName]):
-                    """
-                    update overflow order like underflow so it goes min to max
-                    """
-                    overFlow(accountSummary.overflow.loc[accName],
-                             accountSummary.capGainsType.loc[accountSummary.overflow.loc[accName]],
-                             maxBal=accountSummary.overAmt.loc[accName] if not pd.isna(accountSummary.overAmt.loc[accName]) else 1e9)
+            #ADJUST UNDERFLOW/OVERFLOW
+            for i in range(len(overflowOrder)-1):
+                accFrom = overflowOrder[i]
+                accTo = overflowOrder[i+1]
 
-                #TAX WITHDRAWALS
-                calculateTaxes()
+                overFlow(accFrom,
+                         accTo,
+                         accountSummary.overAmt.loc[accName] if not pd.isna(accountSummary.overAmt.loc[accName]) else 1e9)
+
+            #TAX WITHDRAWALS
+            calculateTaxes()
     
     def earningsReport(self):
         self.reports.totalTaxes    = pd.DataFrame(np.stack([np.sum(self.fedTax,axis=0), 
